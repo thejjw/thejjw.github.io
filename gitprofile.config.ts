@@ -52,7 +52,7 @@ const CONFIG = {
     },
   },
   seo: {
-    title: 'thejjw.github.io',
+    title: 'jjw',
     description: '',
     imageURL: '',
   },
@@ -74,7 +74,7 @@ const CONFIG = {
     stackoverflow: '', // example: '1/jeff-atwood'
     skype: '',
     telegram: '',
-    website: ['https://thejjw.github.io','https://jjw.is-a.dev''],
+    website: 'https://jjw.is-a.dev',
     phone: '',
     email: '',
   },
