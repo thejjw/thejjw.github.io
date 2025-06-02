@@ -89,6 +89,7 @@ const CONFIG = {
     'C',
     'Go',
     'Powershell',
+    'SQL',
     'Docker',
     'Rust',
     '…',
@@ -128,7 +129,6 @@ const CONFIG = {
       year: 'May 2017',
       link: 'https://www.hrdkorea.or.kr/',
     },
-
   ],
   educations: [
     {
