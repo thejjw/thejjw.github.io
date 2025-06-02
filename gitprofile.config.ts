@@ -111,11 +111,24 @@ const CONFIG = {
   ],
   certifications: [
     {
-      name: 'Lorem ipsum',
-      body: 'Lorem ipsum dolor sit amet',
-      year: 'March 2022',
-      link: 'https://example.com',
+      name: 'Structured Query Language Developer',
+      body: 'Kdata (Korea Data Agency)',
+      year: 'Oct 2021',
+      link: 'https://www.kdata.or.kr/',
     },
+    {
+      name: 'Engineer, Information Security',
+      body: 'KISA (Korea Internet & Security Agency)',
+      year: 'Dec 2018',
+      link: 'https://www.kisa.or.kr/',
+    },
+    {
+      name: 'Engineer, Information Processing',
+      body: 'HRD Korea(한국산업인력공단)',
+      year: 'May 2017',
+      link: 'https://www.hrdkorea.or.kr/',
+    },
+
   ],
   educations: [
     {
