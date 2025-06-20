@@ -103,11 +103,11 @@ const CONFIG = {
       companyLink: 'https://www.securelink.co.kr',
     },
     {
-      company: 'Company Name',
-      position: 'Position',
-      from: 'July 2019',
-      to: 'August 2021',
-      companyLink: 'https://example.com',
+      company: 'Some Companies',
+      position: 'Software Engineer',
+      from: 'Past',
+      to: 'April 2021',
+      companyLink: 'https://somecompany.com',
     },
   ],
   certifications: [
