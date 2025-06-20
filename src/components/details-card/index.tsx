@@ -368,6 +368,18 @@ const DetailsCard = ({ profile, loading, social, github }: Props) => {
                   link={`mailto:${social.email}`}
                 />
               )}
+              {/* Disqus message button as last item */}
+              <div className="flex justify-start py-2 px-1 items-center">
+                <div className="flex-grow font-medium gap-2 flex items-center my-1">
+                  Leave me a message:
+                </div>
+                <button
+                  className="btn btn-outline btn-primary ml-3"
+                  onClick={() => window.open('/disqus.html', 'disqus', 'width=600,height=800')}
+                >
+                  Open Disqus
+                </button>
+              </div>
             </Fragment>
           )}
         </div>

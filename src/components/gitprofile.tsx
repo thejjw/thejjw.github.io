@@ -284,15 +284,6 @@ const GitProfile = ({ config }: { config: Config }) => {
                 </div>
               </div>
             </div>
-            {/* Horizontal line separator before Comments popup */}
-            <hr className="my-8 border-t border-base-300" />
-            {/* Comments popup button */}
-            <button
-              className="btn btn-outline btn-primary my-4"
-              onClick={() => window.open('/disqus.html', 'disqus', 'width=600,height=800')}
-            >
-              Open Comments
-            </button>
             {sanitizedConfig.footer && (
               <footer
                 className={`p-4 footer ${BG_COLOR} text-base-content footer-center`}
