@@ -30,6 +30,7 @@ import ExternalProjectCard from './external-project-card';
 import BlogCard from './blog-card';
 import Footer from './footer';
 import PublicationCard from './publication-card';
+import Disqus from './disqus';
 
 /**
  * Renders the GitProfile component.
@@ -284,6 +285,10 @@ const GitProfile = ({ config }: { config: Config }) => {
                 </div>
               </div>
             </div>
+            {/* Horizontal line separator before Disqus */}
+            <hr className="my-8 border-t border-base-300" />
+            {/* Disqus comments section */}
+            <Disqus />
             {sanitizedConfig.footer && (
               <footer
                 className={`p-4 footer ${BG_COLOR} text-base-content footer-center`}
