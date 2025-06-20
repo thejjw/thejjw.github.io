@@ -1,28 +1,16 @@
-import { useEffect } from 'react';
+import { DiscussionEmbed } from 'disqus-react';
 
 const Disqus = () => {
-  useEffect(() => {
-    const d = document;
-    const s = d.createElement('script');
-    s.src = 'https://jjw-is-a-dev.disqus.com/embed.js';
-    s.setAttribute('data-timestamp', String(+new Date()));
-    (d.head || d.body).appendChild(s);
-    return () => {
-      // Clean up Disqus thread if needed
-      const thread = d.getElementById('disqus_thread');
-      if (thread) thread.innerHTML = '';
-    };
-  }, []);
+  // Example static config; replace with dynamic values if needed
+  const disqusShortname = 'jjw-is-a-dev';
+  const disqusConfig = {
+    url: window.location.href,
+    identifier: window.location.pathname,
+    title: document.title,
+    language: 'en',
+  };
 
-  return (
-    <>
-      <div id="disqus_thread"></div>
-      <noscript>
-        Please enable JavaScript to view the{' '}
-        <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
-      </noscript>
-    </>
-  );
+  return <DiscussionEmbed shortname={disqusShortname} config={disqusConfig} />;
 };
 
 export default Disqus;
