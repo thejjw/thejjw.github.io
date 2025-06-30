@@ -99,7 +99,7 @@ const CONFIG = {
       position: 'Software Engineer',
       from: 'Past',
       to: 'April 2021',
-      companyLink: 'https://somecompany.com',
+      companyLink: 'https://www.linkedin.com/in/jaewoo-jeon',
     },
   ],
   certifications: [
