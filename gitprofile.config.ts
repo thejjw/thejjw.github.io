@@ -29,26 +29,18 @@ const CONFIG = {
       },
     },
     external: {
-      // header: 'My Projects',
-      // // To hide the `External Projects` section, keep it empty.
-      // projects: [
-      //   {
-      //     title: 'Project Name',
-      //     description:
-      //       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nunc ut.',
-      //     imageUrl:
-      //       'https://img.freepik.com/free-vector/illustration-gallery-icon_53876-27002.jpg',
-      //     link: 'https://example.com',
-      //   },
-      //   {
-      //     title: 'Project Name',
-      //     description:
-      //       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nunc ut.',
-      //     imageUrl:
-      //       'https://img.freepik.com/free-vector/illustration-gallery-icon_53876-27002.jpg',
-      //     link: 'https://example.com',
-      //   },
-      // ],
+      header: 'My Projects',
+      // To hide the `External Projects` section, keep it empty.
+      projects: [
+        {
+          title: 'Link Visited Tooltip',
+          description:
+            'Chrome extension that shows a tooltip on link hover indicating when a link was last visited..',
+          imageUrl:
+            'https://lh3.googleusercontent.com/GvV0Re9QdCKp5wgvmOTiJgKHvmZnbAkflaPFr2f0aKhsYSoqHVhLcd8ZaRiCRsLcRKoQOCme3N3npBjlqZtX8QDU=s1280-w1280-h800',
+          link: 'https://chromewebstore.google.com/detail/link-visited-tooltip/eknakfmjakcfjkemkanekcakbnjfkbnc',
+        },
+      ],
     },
   },
   seo: {
