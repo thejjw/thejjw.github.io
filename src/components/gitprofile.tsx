@@ -109,7 +109,7 @@ const GitProfile = ({ config }: { config: Config }) => {
       setProfile({
         avatar: data.avatar_url,
         name: 'Jaewoo Jeon', // previously data.name || ' ',
-        bio: data.bio || '',
+        bio: 'Software Engineer', // data.bio || '',
         location: data.location || '',
         company: data.company || '',
       });
