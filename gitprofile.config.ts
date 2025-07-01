@@ -45,7 +45,7 @@ const CONFIG = {
   },
   seo: {
     title: 'jjw',
-    description: '',
+    description: 'Hello. This is Jaewoo Jeon. Thank you for reading my profile.',
     imageURL: '',
   },
   social: {
