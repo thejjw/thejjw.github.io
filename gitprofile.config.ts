@@ -45,8 +45,8 @@ const CONFIG = {
           description:
             'A Chrome extension that allows you to quickly save images by hovering over them..',
           imageUrl:
-            '',
-          link: 'https://github.com/thejjw/image-hover-save-chrome-extension',
+            'https://lh3.googleusercontent.com/nJYKUbuitdoSe6a09IqQblgh3A0NmpW4_kFEq6GwTOinxbbAzpVs2AlEoITGHErmzgiR7pH1aamQsdQKvYCZbnUFu2g=s1280-w1280-h800',
+          link: 'https://chromewebstore.google.com/detail/image-hover-save/lhmljebjlhdafkminimimaokjliabegg?authuser=0&hl=en',
         },
       ],
     },
