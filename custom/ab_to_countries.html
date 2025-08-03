@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minimal IP Country Lookup</title>
+  <script src="https://unpkg.com/fflate@0.8.2"></script>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    #result { margin-top: 1em; color: #1a1a1a; font-weight: bold; }
+    #status { color: #444; }
+  </style>
+</head>
+<body>
+  <h2>Minimal IP Country Lookup</h2>
+  <div id="status">Loading database...</div>
+  <label>Enter a.b or a.b.c.d:
+    <input type="text" id="queryInput" size="24" disabled>
+  </label>
+  <button id="lookupBtn" disabled>Lookup</button>
+  <div id="result"></div>
+  <script>
+    const LOCAL_GZ_URL = "./delegated-apnic-latest.gz";
+    let abToCountries = {};
+    let ipRanges = [];
+
+    function ipToInt(ip) {
+      return ip.split('.').reduce((a, b) => (a << 8) + parseInt(b, 10), 0);
+    }
+
+    function parseDelegatedFile(text) {
+      abToCountries = {};
+      ipRanges = [];
+      const lines = text.split('\n');
+      for (let line of lines) {
+        if (line.startsWith('#')) continue;
+        const fields = line.trim().split('|');
+        if (fields.length < 7) continue;
+        const [ , cc, ipver, start, count ] = fields;
+        if (ipver !== "ipv4") continue;
+        try {
+          const [a, b] = start.split('.').map(Number);
+          const ab = `${a}.${b}`;
+          const countNum = parseInt(count, 10);
+          const startInt = ipToInt(start);
+          const endInt = startInt + countNum - 1;
+          ipRanges.push({ start: startInt, end: endInt, cc });
+          if (!abToCountries[ab]) abToCountries[ab] = new Set();
+          abToCountries[ab].add(cc);
+        } catch (e) { continue; }
+      }
+      ipRanges.sort((r1, r2) => r1.start - r2.start);
+      Object.keys(abToCountries).forEach(k => {
+        abToCountries[k] = Array.from(abToCountries[k]);
+      });
+    }
+
+    function query_ab(a, b) {
+      const ab = `${a}.${b}`;
+      return abToCountries[ab] || [];
+    }
+
+    function find_country_for_ip(ipStr) {
+      const ipInt = ipToInt(ipStr);
+      let left = 0, right = ipRanges.length - 1;
+      while (left <= right) {
+        let mid = (left + right) >> 1;
+        const range = ipRanges[mid];
+        if (ipInt < range.start) {
+          right = mid - 1;
+        } else if (ipInt > range.end) {
+          left = mid + 1;
+        } else {
+          return range.cc;
+        }
+      }
+      return null;
+    }
+
+    function enableUI() {
+      document.getElementById('queryInput').disabled = false;
+      document.getElementById('lookupBtn').disabled = false;
+      document.getElementById('status').textContent = "Database loaded. Enter a.b or a.b.c.d to lookup.";
+    }
+
+    function showResult(msg) {
+      document.getElementById('result').textContent = msg;
+    }
+
+    // Load and parse on page load
+    (async function(){
+      try {
+        const resp = await fetch(LOCAL_GZ_URL);
+        if (!resp.ok) throw new Error("Failed to fetch database.");
+        const gzipped = new Uint8Array(await resp.arrayBuffer());
+        const decompressed = fflate.gunzipSync(gzipped);
+        const text = new TextDecoder().decode(decompressed);
+        parseDelegatedFile(text);
+        enableUI();
+      } catch (e) {
+        document.getElementById('status').textContent = "Failed: " + e;
+      }
+    })();
+
+    // Query logic
+    document.getElementById('lookupBtn').onclick = function() {
+      const query = document.getElementById('queryInput').value.trim();
+      const parts = query.split('.');
+      let out = '';
+      if (parts.length === 2) {
+        const [a, b] = parts.map(Number);
+        const countries = query_ab(a, b);
+        out = countries.length ? `${a}.${b}: ${countries.join(', ')}` : `${a}.${b}: (no country assignment found)`;
+      } else if (parts.length === 4) {
+        const cc = find_country_for_ip(query);
+        out = cc ? `${query}: ${cc}` : `${query}: (no country assignment found)`;
+      } else {
+        out = 'Invalid input. Use a.b or a.b.c.d';
+      }
+      showResult(out);
+    };
+    document.getElementById('queryInput').onkeydown = function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('lookupBtn').click();
+      }
+    };
+  </script>
+</body>
+</html>
