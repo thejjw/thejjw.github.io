@@ -48,6 +48,14 @@ const CONFIG = {
             'https://lh3.googleusercontent.com/nJYKUbuitdoSe6a09IqQblgh3A0NmpW4_kFEq6GwTOinxbbAzpVs2AlEoITGHErmzgiR7pH1aamQsdQKvYCZbnUFu2g=s1280-w1280-h800',
           link: 'https://chromewebstore.google.com/detail/image-hover-save/lhmljebjlhdafkminimimaokjliabegg',
         },
+        {
+          title: 'Cache Killer Extension',
+          description:
+            'A Chrome extension that disables browser cache to ensure pages always load fresh content from the server instead of using cached versions.',
+          imageUrl:
+            'https://lh3.googleusercontent.com/0cQ7YiJw_GI9Yz61Tjt5QnSbkPjBS6oQ5dvlP4pkhRH84zDhgIw6e-BNigMGuwg3D1vUnKdh0Y-WX84inBELvWlH=s1280-w1280-h800',
+          link: 'https://chromewebstore.google.com/detail/cache-killer/jhpfoicanffigcjoogcgihhjikmcpopf',
+        },
       ],
     },
   },
