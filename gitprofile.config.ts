@@ -232,7 +232,7 @@ const CONFIG = {
   },
 
   // Optional Footer. Supports plain text or HTML.
-  footer: `<span>page based on GitProfile(@arifszn/gitprofile). @thejjw 2025-2025</span><br><span><a href="./tool/compression-comparison-tool.html">tool 1: Compression Tool</a></span>`,
+  footer: `<span>page based on GitProfile(@arifszn/gitprofile). @thejjw 2025-2025</span><br><span><a href="./tool/compression-comparison-tool.html">tool 1: Compression Tool</a> • <a href="./tool/jpegxl-converter.html">tool 2: JPEG XL Converter</a></span>`,
 
   enablePWA: true,
 };
