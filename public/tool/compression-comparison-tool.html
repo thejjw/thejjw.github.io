@@ -568,6 +568,80 @@
             margin-top: 5px;
             text-align: right;
         }
+
+        .checksum-section {
+            margin-top: 15px;
+            padding: 12px 16px;
+            background: #f3f4ff;
+            border: 1px solid #d8ddff;
+            border-radius: 10px;
+        }
+
+        .checksum-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #3730a3;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .checksum-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .checksum-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #374151;
+        }
+
+        .checksum-label {
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .checksum-value-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .checksum-value {
+            letter-spacing: 0.5px;
+        }
+
+        .checksum-copy {
+            border: none;
+            background: rgba(102, 126, 234, 0.15);
+            color: #4338ca;
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 13px;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .checksum-copy:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        .checksum-copy:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .checksum-copy-indicator {
+            font-size: 11px;
+            color: #047857;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -636,6 +710,32 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                         <button type="button" class="btn-secondary" onclick="triggerGenericFileDialog()">Choose File</button>
                         <input type="file" id="genericFileInput" class="hidden-input" onchange="handleGenericFileChange(event)">
                         <div class="file-info" id="genericFileInfo">No file selected</div>
+                    </div>
+
+                    <div class="checksum-section" id="compressChecksumSection">
+                        <div class="checksum-title">Input Checksums</div>
+                        <div class="checksum-grid">
+                            <div class="checksum-item">
+                                <span class="checksum-label">CRC32</span>
+                                <div class="checksum-value-group">
+                                    <span class="checksum-value" id="compress-crc32" data-value="">-</span>
+                                    <button type="button" class="checksum-copy" id="compress-crc32-copy" onclick="copyChecksum('compress-crc32')" title="Copy CRC32">
+                                        📋
+                                    </button>
+                                    <span class="checksum-copy-indicator" id="compress-crc32-copied">Copied!</span>
+                                </div>
+                            </div>
+                            <div class="checksum-item">
+                                <span class="checksum-label">SHA-256</span>
+                                <div class="checksum-value-group">
+                                    <span class="checksum-value" id="compress-sha256" data-value="">-</span>
+                                    <button type="button" class="checksum-copy" id="compress-sha256-copy" onclick="copyChecksum('compress-sha256')" title="Copy SHA-256">
+                                        📋
+                                    </button>
+                                    <span class="checksum-copy-indicator" id="compress-sha256-copied">Copied!</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="button-group">
@@ -813,6 +913,31 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                                 <span class="metric-value" id="decompress-time">-</span>
                             </div>
                         </div>
+                        <div class="checksum-section" id="decompressChecksumSection">
+                            <div class="checksum-title">Output Checksums</div>
+                            <div class="checksum-grid">
+                                <div class="checksum-item">
+                                    <span class="checksum-label">CRC32</span>
+                                    <div class="checksum-value-group">
+                                        <span class="checksum-value" id="decompress-crc32" data-value="">-</span>
+                                        <button type="button" class="checksum-copy" id="decompress-crc32-copy" onclick="copyChecksum('decompress-crc32')" title="Copy CRC32">
+                                            📋
+                                        </button>
+                                        <span class="checksum-copy-indicator" id="decompress-crc32-copied">Copied!</span>
+                                    </div>
+                                </div>
+                                <div class="checksum-item">
+                                    <span class="checksum-label">SHA-256</span>
+                                    <div class="checksum-value-group">
+                                        <span class="checksum-value" id="decompress-sha256" data-value="">-</span>
+                                        <button type="button" class="checksum-copy" id="decompress-sha256-copy" onclick="copyChecksum('decompress-sha256')" title="Copy SHA-256">
+                                            📋
+                                        </button>
+                                        <span class="checksum-copy-indicator" id="decompress-sha256-copied">Copied!</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="output-area">
                             <div class="output-label" id="decompressOutputLabel">Decompressed Text:</div>
                             <textarea id="decompress-output" rows="10" style="width: 100%; margin-top: 10px;" readonly></textarea>
@@ -888,7 +1013,9 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             algorithm: '',
             mimeType: 'text/plain;charset=utf-8',
             previewText: '',
-            forceShown: false
+            forceShown: false,
+            crc32: '',
+            sha256: ''
         };
 
         const decompressInputState = {
@@ -899,6 +1026,131 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             binaryMimeType: '',
             preferBinary: false
         };
+
+        const CRC32_TABLE = (() => {
+            const table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let crc = i;
+                for (let j = 0; j < 8; j++) {
+                    crc = (crc & 1) ? (0xedb88320 ^ (crc >>> 1)) : (crc >>> 1);
+                }
+                table[i] = crc >>> 0;
+            }
+            return table;
+        })();
+
+        function computeCRC32(buffer) {
+            if (!buffer || !buffer.length) {
+                return null;
+            }
+
+            let crc = 0 ^ (-1);
+            for (let i = 0; i < buffer.length; i++) {
+                crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ buffer[i]) & 0xff];
+            }
+
+            return ((crc ^ (-1)) >>> 0).toString(16).padStart(8, '0').toUpperCase();
+        }
+
+        async function computeSha256(buffer) {
+            if (!buffer || !buffer.length) {
+                return null;
+            }
+
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        async function computeChecksums(buffer) {
+            if (!buffer || !buffer.length) {
+                return { crc32: null, sha256: null };
+            }
+
+            const crc32 = computeCRC32(buffer);
+            const sha256 = await computeSha256(buffer);
+            return { crc32, sha256 };
+        }
+
+        function applyChecksumValue(prefix, suffix, value) {
+            const valueEl = document.getElementById(`${prefix}-${suffix}`);
+            const buttonEl = document.getElementById(`${prefix}-${suffix}-copy`);
+            const indicatorEl = document.getElementById(`${prefix}-${suffix}-copied`);
+
+            if (valueEl) {
+                if (value) {
+                    valueEl.textContent = value;
+                    valueEl.dataset.value = value;
+                } else {
+                    valueEl.textContent = '-';
+                    valueEl.dataset.value = '';
+                }
+            }
+
+            if (buttonEl) {
+                buttonEl.disabled = !value;
+            }
+
+            if (indicatorEl) {
+                indicatorEl.style.display = 'none';
+            }
+        }
+
+        function updateChecksumDisplay(prefix, values) {
+            const payload = values || { crc32: null, sha256: null };
+            applyChecksumValue(prefix, 'crc32', payload.crc32);
+            applyChecksumValue(prefix, 'sha256', payload.sha256);
+        }
+
+        let compressChecksumTimeout = null;
+
+        function scheduleCompressChecksumUpdate(buffer) {
+            if (compressChecksumTimeout) {
+                clearTimeout(compressChecksumTimeout);
+                compressChecksumTimeout = null;
+            }
+
+            const safeBuffer = buffer && buffer.length ? buffer : null;
+
+            compressChecksumTimeout = setTimeout(async () => {
+                try {
+                    if (safeBuffer && safeBuffer.length) {
+                        const checksums = await computeChecksums(safeBuffer);
+                        updateChecksumDisplay('compress', checksums);
+                    } else {
+                        updateChecksumDisplay('compress', { crc32: null, sha256: null });
+                    }
+                } catch (error) {
+                    console.error('Checksum calculation failed:', error);
+                    updateChecksumDisplay('compress', { crc32: null, sha256: null });
+                } finally {
+                    compressChecksumTimeout = null;
+                }
+            }, 200);
+        }
+
+        async function updateDecompressChecksums(buffer) {
+            try {
+                if (buffer && buffer.length) {
+                    const checksums = await computeChecksums(buffer);
+                    updateChecksumDisplay('decompress', checksums);
+                    decompressedState.crc32 = checksums.crc32 || '';
+                    decompressedState.sha256 = checksums.sha256 || '';
+                } else {
+                    updateChecksumDisplay('decompress', { crc32: null, sha256: null });
+                    decompressedState.crc32 = '';
+                    decompressedState.sha256 = '';
+                }
+            } catch (error) {
+                console.error('Checksum calculation failed:', error);
+                updateChecksumDisplay('decompress', { crc32: null, sha256: null });
+                decompressedState.crc32 = '';
+                decompressedState.sha256 = '';
+            }
+        }
+
+        updateChecksumDisplay('compress');
+        updateChecksumDisplay('decompress');
 
         function updateModeRadioStyles(mode) {
             document.querySelectorAll('#inputModeSelector .radio-option').forEach(option => {
@@ -934,6 +1186,12 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
             if (mode === 'text') {
                 updateCharCount('compress');
+            } else if (mode === 'image') {
+                const buffer = fileInputCache.image.buffer;
+                scheduleCompressChecksumUpdate(buffer && buffer.length ? buffer : null);
+            } else if (mode === 'generic') {
+                const buffer = fileInputCache.generic.buffer;
+                scheduleCompressChecksumUpdate(buffer && buffer.length ? buffer : null);
             }
         }
 
@@ -1006,6 +1264,10 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             fileInputCache.image.mimeType = '';
             fileInputCache.image.size = 0;
             fileInputCache.image.previewUrl = null;
+
+            if (inputState.mode === 'image') {
+                scheduleCompressChecksumUpdate(null);
+            }
         }
 
         function resetGenericSelection() {
@@ -1023,6 +1285,10 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             fileInputCache.generic.fileName = '';
             fileInputCache.generic.mimeType = '';
             fileInputCache.generic.size = 0;
+
+            if (inputState.mode === 'generic') {
+                scheduleCompressChecksumUpdate(null);
+            }
         }
 
         async function loadImageFile(file) {
@@ -1035,6 +1301,9 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
             if (!isSupportedImage(file)) {
                 showStatus('Unsupported image type. Try PNG, JPEG, WEBP, GIF, SVG, or BMP.', 'error', 'compressStatus');
+                if (inputState.mode === 'image') {
+                    scheduleCompressChecksumUpdate(null);
+                }
                 return;
             }
 
@@ -1070,9 +1339,13 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 }
 
                 markImageHasFile(true);
+                scheduleCompressChecksumUpdate(buffer);
             } catch (error) {
                 showStatus(`Unable to load image: ${error.message}`, 'error', 'compressStatus');
                 console.error('Image load error:', error);
+                if (inputState.mode === 'image') {
+                    scheduleCompressChecksumUpdate(null);
+                }
             } finally {
                 inputState.loading = false;
                 const imageInput = document.getElementById('imageFileInput');
@@ -1107,9 +1380,14 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 if (infoEl) {
                     infoEl.textContent = describeFile(fileName, buffer.byteLength, mimeType);
                 }
+
+                scheduleCompressChecksumUpdate(buffer);
             } catch (error) {
                 showStatus(`Unable to load file: ${error.message}`, 'error', 'compressStatus');
                 console.error('File load error:', error);
+                if (inputState.mode === 'generic') {
+                    scheduleCompressChecksumUpdate(null);
+                }
             } finally {
                 inputState.loading = false;
                 const genericInput = document.getElementById('genericFileInput');
@@ -1224,9 +1502,14 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 if (inputEl) {
                     inputEl.value = text;
                 }
+
+                scheduleCompressChecksumUpdate(buffer);
                 const infoEl = document.getElementById('decompressFileInfo');
                 if (infoEl) {
                     infoEl.textContent = describeFile(file.name, text.length, file.type || 'text/plain');
+                if (inputState.mode === 'generic') {
+                    scheduleCompressChecksumUpdate(null);
+                }
                 }
                 decompressInputState.base64FileName = file.name;
                 decompressInputState.base64MimeType = file.type || 'text/plain';
@@ -1345,6 +1628,10 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             decompressedState.mimeType = 'text/plain;charset=utf-8';
             decompressedState.previewText = '';
             decompressedState.forceShown = false;
+            decompressedState.crc32 = '';
+            decompressedState.sha256 = '';
+
+            updateChecksumDisplay('decompress', { crc32: null, sha256: null });
         }
 
         function analyzeDecompressedBuffer(buffer) {
@@ -1727,8 +2014,9 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             const chars = text.length;
 
             if (mode === 'compress') {
-                const bytes = new TextEncoder().encode(text).byteLength;
-                countEl.textContent = `${chars.toLocaleString()} characters (${formatBytes(bytes)})`;
+                const encoded = new TextEncoder().encode(text);
+                countEl.textContent = `${chars.toLocaleString()} characters (${formatBytes(encoded.byteLength)})`;
+                scheduleCompressChecksumUpdate(encoded);
             } else {
                 countEl.textContent = `${chars.toLocaleString()} characters`;
                 if (chars > 0) {
@@ -1888,6 +2176,8 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 decompressedState.previewText = previewText;
                 decompressedState.forceShown = false;
 
+                updateDecompressChecksums(decompressedBuffer);
+
                 document.getElementById('decompressResults').style.display = 'grid';
                 
                 const sourceLabel = useBinary ? 'binary file' : 'Base64 input';
@@ -2014,6 +2304,34 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
             resetDecompressDisplay();
             updateCharCount('decompress');
+        };
+
+        window.copyChecksum = function(targetId) {
+            const valueEl = document.getElementById(targetId);
+            if (!valueEl) {
+                return;
+            }
+
+            const value = valueEl.dataset.value || '';
+            const indicatorEl = document.getElementById(`${targetId}-copied`);
+            const statusTarget = targetId.startsWith('compress') ? 'compressStatus' : 'decompressStatus';
+
+            if (!value) {
+                showStatus('Checksum not available yet.', 'info', statusTarget);
+                return;
+            }
+
+            navigator.clipboard.writeText(value).then(() => {
+                if (indicatorEl) {
+                    indicatorEl.style.display = 'inline';
+                    setTimeout(() => {
+                        indicatorEl.style.display = 'none';
+                    }, 2000);
+                }
+            }).catch(error => {
+                console.error('Checksum copy failed:', error);
+                showStatus('Unable to copy checksum. Please try again.', 'error', statusTarget);
+            });
         };
 
         window.copyOutput = function(id) {
