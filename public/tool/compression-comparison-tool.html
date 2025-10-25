@@ -230,6 +230,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-binary {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-binary:hover:not(:disabled) {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+
         .btn-danger {
             background: #ef4444;
             color: white;
@@ -755,6 +765,14 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                         <input type="file" id="decompressFileInput" class="hidden-input" accept=".txt,.text,.b64,.base64,text/plain" onchange="handleDecompressFileChange(event)">
                     </div>
                     <div class="file-info" id="decompressFileInfo">No file selected</div>
+
+                    <div class="button-group">
+                        <button class="btn-binary" type="button" onclick="triggerBinaryDecompressFileDialog()">
+                            <span>📦</span> Load Binary (.zst/.lz4)
+                        </button>
+                        <input type="file" id="decompressBinaryFileInput" class="hidden-input" accept=".zst,.zstd,.lz4,.lz4hc,.bin,application/octet-stream" onchange="handleBinaryDecompressFileChange(event)">
+                    </div>
+                    <div class="file-info" id="decompressBinaryFileInfo">No binary file selected</div>
                     
                     <div class="button-group">
                         <button class="btn-primary" onclick="decompressData('zstd')">
@@ -777,7 +795,7 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                         <h3 id="decompress-algo-title">📦 Decompression Result</h3>
                         <div class="metrics-grid">
                             <div class="metric-row">
-                                <span class="metric-label">Compressed Size (Base64)</span>
+                                <span class="metric-label" id="decompress-compressed-size-label">Compressed Size (Base64)</span>
                                 <span class="metric-value" id="decompress-compressed-size">-</span>
                             </div>
                             <div class="metric-row">
@@ -869,6 +887,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             mimeType: 'text/plain;charset=utf-8',
             previewText: '',
             forceShown: false
+        };
+
+        const decompressInputState = {
+            base64FileName: '',
+            base64MimeType: '',
+            binaryBuffer: null,
+            binaryFileName: '',
+            binaryMimeType: '',
+            preferBinary: false
         };
 
         function updateModeRadioStyles(mode) {
@@ -1199,10 +1226,62 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 if (infoEl) {
                     infoEl.textContent = describeFile(file.name, text.length, file.type || 'text/plain');
                 }
+                decompressInputState.base64FileName = file.name;
+                decompressInputState.base64MimeType = file.type || 'text/plain';
+                if (text.length) {
+                    decompressInputState.preferBinary = false;
+                }
                 updateCharCount('decompress');
             } catch (error) {
                 showStatus(`Unable to read file: ${error.message}`, 'error', 'decompressStatus');
                 console.error('Decompress file load error:', error);
+            } finally {
+                if (event.target) {
+                    event.target.value = '';
+                }
+            }
+        };
+
+        window.triggerBinaryDecompressFileDialog = function() {
+            const input = document.getElementById('decompressBinaryFileInput');
+            if (input) {
+                input.click();
+            }
+        };
+
+        window.handleBinaryDecompressFileChange = async function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            try {
+                const buffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+                decompressInputState.binaryBuffer = bytes;
+                decompressInputState.binaryFileName = file.name;
+                decompressInputState.binaryMimeType = file.type || 'application/octet-stream';
+                decompressInputState.preferBinary = true;
+
+                const infoEl = document.getElementById('decompressBinaryFileInfo');
+                if (infoEl) {
+                    infoEl.textContent = describeFile(
+                        file.name,
+                        bytes.byteLength,
+                        decompressInputState.binaryMimeType
+                    );
+                }
+
+                showStatus('Binary compressed file loaded. Use the decompress buttons to continue.', 'info', 'decompressStatus');
+            } catch (error) {
+                showStatus(`Unable to read binary file: ${error.message}`, 'error', 'decompressStatus');
+                console.error('Binary decompress file load error:', error);
+                decompressInputState.binaryBuffer = null;
+                decompressInputState.binaryFileName = '';
+                decompressInputState.binaryMimeType = '';
+                decompressInputState.preferBinary = false;
+                const infoEl = document.getElementById('decompressBinaryFileInfo');
+                if (infoEl) {
+                    infoEl.textContent = 'No binary file selected';
+                }
             } finally {
                 if (event.target) {
                     event.target.value = '';
@@ -1220,6 +1299,31 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             const warning = document.getElementById('decompressBinaryWarning');
             if (warning) {
                 warning.classList.add('hidden');
+            }
+
+            const compressedLabel = document.getElementById('decompress-compressed-size-label');
+            if (compressedLabel) {
+                compressedLabel.textContent = 'Compressed Size (Base64)';
+            }
+
+            const compressedValue = document.getElementById('decompress-compressed-size');
+            if (compressedValue) {
+                compressedValue.textContent = '-';
+            }
+
+            const rawValue = document.getElementById('decompress-raw-size');
+            if (rawValue) {
+                rawValue.innerHTML = '-';
+            }
+
+            const originalValue = document.getElementById('decompress-original-size');
+            if (originalValue) {
+                originalValue.innerHTML = '-';
+            }
+
+            const timeValue = document.getElementById('decompress-time');
+            if (timeValue) {
+                timeValue.textContent = '-';
             }
 
             const label = document.getElementById('decompressOutputLabel');
@@ -1625,6 +1729,9 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 countEl.textContent = `${chars.toLocaleString()} characters (${formatBytes(bytes)})`;
             } else {
                 countEl.textContent = `${chars.toLocaleString()} characters`;
+                if (chars > 0) {
+                    decompressInputState.preferBinary = false;
+                }
             }
         };
 
@@ -1641,10 +1748,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         };
 
         window.decompressData = function(algorithm) {
-            const inputText = document.getElementById('decompressInput').value.trim();
-            
-            if (!inputText) {
-                showStatus('Please paste Base64 compressed data.', 'error', 'decompressStatus');
+            const inputEl = document.getElementById('decompressInput');
+            const inputText = inputEl ? inputEl.value.trim() : '';
+            const hasBase64Input = inputText.length > 0;
+            const binaryBuffer = decompressInputState.binaryBuffer;
+            const hasBinaryInput = Boolean(binaryBuffer && binaryBuffer.byteLength);
+            const useBinary = (decompressInputState.preferBinary && hasBinaryInput) || (!hasBase64Input && hasBinaryInput);
+
+            if (!hasBase64Input && !hasBinaryInput) {
+                showStatus('Provide Base64 data or load a binary compressed file.', 'error', 'decompressStatus');
                 return;
             }
 
@@ -1654,15 +1766,29 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             }
 
             try {
-                // Decode Base64
-                const compressedBytes = base64ToUint8Array(inputText);
-                const compressedSize = compressedBytes.byteLength;
-                const base64Size = inputText.length;
+                let compressedBytes;
+                let compressedSize;
+                let base64Size = null;
+                let sourceDescriptor = '';
+
+                if (useBinary) {
+                    compressedBytes = binaryBuffer;
+                    compressedSize = compressedBytes.byteLength;
+                    sourceDescriptor = decompressInputState.binaryFileName
+                        ? `Binary file (${decompressInputState.binaryFileName})`
+                        : 'Binary file input';
+                } else {
+                    const decoded = base64ToUint8Array(inputText);
+                    compressedBytes = decoded;
+                    compressedSize = decoded.byteLength;
+                    base64Size = inputText.length;
+                    sourceDescriptor = 'Base64 input';
+                    decompressInputState.preferBinary = false;
+                }
 
                 let decompressedBuffer;
                 let decompressTime;
                 
-                // Decompress based on algorithm
                 if (algorithm === 'zstd') {
                     const start = performance.now();
                     decompressedBuffer = decompress(compressedBytes);
@@ -1670,12 +1796,10 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                     document.getElementById('decompress-algo-title').textContent = '🗜️ ZSTD Decompression Result';
                 } else {
                     const start = performance.now();
-                    // For LZ4, we need the original size - if not available, try common sizes
                     let originalSize = compressedDataStore.originalSize || 10000;
                     try {
                         decompressedBuffer = lz4.decodeBlock(compressedBytes, 0, originalSize);
                     } catch (e) {
-                        // Try larger sizes
                         for (let size of [50000, 100000, 500000, 1000000]) {
                             try {
                                 decompressedBuffer = lz4.decodeBlock(compressedBytes, 0, size);
@@ -1696,9 +1820,25 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 const decompressedText = analysis.text;
                 const previewText = analysis.preview || '';
 
-                // Update display
-                document.getElementById('decompress-compressed-size').innerHTML = 
-                    `${base64Size.toLocaleString()} chars`;
+                const compressedSizeLabelEl = document.getElementById('decompress-compressed-size-label');
+                if (compressedSizeLabelEl) {
+                    compressedSizeLabelEl.textContent = useBinary ? 'Compressed Size (Binary)' : 'Compressed Size (Base64)';
+                }
+
+                const compressedSizeEl = document.getElementById('decompress-compressed-size');
+                if (compressedSizeEl) {
+                    if (!useBinary && base64Size !== null) {
+                        compressedSizeEl.textContent = `${base64Size.toLocaleString()} chars`;
+                    } else {
+                        const name = decompressInputState.binaryFileName ? decompressInputState.binaryFileName : 'Binary input';
+                        const parts = [name, formatBytes(compressedSize)];
+                        if (decompressInputState.binaryMimeType) {
+                            parts.push(decompressInputState.binaryMimeType);
+                        }
+                        compressedSizeEl.textContent = parts.join(' • ');
+                    }
+                }
+
                 document.getElementById('decompress-raw-size').innerHTML = 
                     `${formatBytes(compressedSize)} <span class="metric-badge">${compressedSize.toLocaleString()} bytes</span>`;
                 document.getElementById('decompress-original-size').innerHTML = 
@@ -1746,15 +1886,17 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 decompressedState.previewText = previewText;
                 decompressedState.forceShown = false;
 
-                // Show results
                 document.getElementById('decompressResults').style.display = 'grid';
                 
-                showStatus(`✅ Decompression with ${algorithm.toUpperCase()} completed successfully!`, 'success', 'decompressStatus');
+                const sourceLabel = useBinary ? 'binary file' : 'Base64 input';
+                showStatus(`✅ Decompression with ${algorithm.toUpperCase()} completed from ${sourceLabel}!`, 'success', 'decompressStatus');
 
-                // Log results
                 console.log(`📦 ${algorithm.toUpperCase()} Decompression Results:`);
                 console.log('═══════════════════════════════════');
-                console.log(`Compressed (Base64): ${base64Size} characters`);
+                console.log(`Source: ${sourceDescriptor}`);
+                if (base64Size !== null) {
+                    console.log(`Compressed (Base64): ${base64Size} characters`);
+                }
                 console.log(`Compressed (Raw): ${formatBytes(compressedSize)} (${compressedSize} bytes)`);
                 console.log(`Decompressed: ${formatBytes(decompressedSize)} (${decompressedSize} bytes)`);
                 console.log(`Time: ${decompressTime.toFixed(2)}ms`);
@@ -1846,6 +1988,28 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 fileInputEl.value = '';
             }
 
+            const binaryInfoEl = document.getElementById('decompressBinaryFileInfo');
+            if (binaryInfoEl) {
+                binaryInfoEl.textContent = 'No binary file selected';
+            }
+
+            const binaryInputEl = document.getElementById('decompressBinaryFileInput');
+            if (binaryInputEl) {
+                binaryInputEl.value = '';
+            }
+
+            const compressedLabelEl = document.getElementById('decompress-compressed-size-label');
+            if (compressedLabelEl) {
+                compressedLabelEl.textContent = 'Compressed Size (Base64)';
+            }
+
+            decompressInputState.base64FileName = '';
+            decompressInputState.base64MimeType = '';
+            decompressInputState.binaryBuffer = null;
+            decompressInputState.binaryFileName = '';
+            decompressInputState.binaryMimeType = '';
+            decompressInputState.preferBinary = false;
+
             resetDecompressDisplay();
             updateCharCount('decompress');
         };
@@ -1883,13 +2047,28 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             }
 
             const algorithm = id.split('-')[0];
-            const blob = new Blob([text], { type: 'text/plain' });
+            const compressedBytes = compressedDataStore[algorithm];
+
+            if (!compressedBytes || !compressedBytes.byteLength) {
+                showStatus('Binary output not available. Run compression again.', 'error', 'compressStatus');
+                return;
+            }
+
+            const buffer = compressedBytes.buffer.slice(
+                compressedBytes.byteOffset,
+                compressedBytes.byteOffset + compressedBytes.byteLength
+            );
+
+            const extension = algorithm === 'zstd' ? 'zst' : algorithm === 'lz4' ? 'lz4' : 'bin';
+            const blob = new Blob([buffer], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `compressed-${algorithm}-${Date.now()}.txt`;
+            a.download = `compressed-${algorithm}-${Date.now()}.${extension}`;
             a.click();
             URL.revokeObjectURL(url);
+
+            showStatus(`Downloaded ${algorithm.toUpperCase()} output as .${extension}.`, 'success', 'compressStatus');
         };
 
         window.copyDecompressed = function() {
