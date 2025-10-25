@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPEG XL Target Size Encoder</title>
+    <style>
+        :root {
+            color-scheme: light;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(160deg, #eef2ff 0%, #f8fafc 40%, #ffffff 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            padding: 40px 16px 80px;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            border: 1px solid rgba(99, 102, 241, 0.16);
+            box-shadow: 0 30px 60px rgba(79, 70, 229, 0.15);
+            padding: 32px 36px 44px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #4338ca;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        h1 span {
+            font-size: 30px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #4b5563;
+            margin-bottom: 24px;
+        }
+
+        .input-card {
+            border: 1px dashed rgba(129, 140, 248, 0.45);
+            border-radius: 18px;
+            padding: 24px;
+            background: rgba(238, 242, 255, 0.45);
+            transition: border-color 0.2s ease, background 0.2s ease;
+            margin-bottom: 24px;
+        }
+
+        .input-card.drag-over {
+            border-color: #4f46e5;
+            background: rgba(129, 140, 248, 0.18);
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .input-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #312e81;
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 11px 18px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.15s;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            box-shadow: 0 15px 22px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 28px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(99, 102, 241, 0.18);
+            color: #312e81;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(99, 102, 241, 0.22);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.16);
+            color: #b91c1c;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(239, 68, 68, 0.18);
+        }
+
+        .drop-message {
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            border-radius: 14px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #4b5563;
+            margin-bottom: 16px;
+        }
+
+        .hidden-input {
+            display: none;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin-bottom: 12px;
+        }
+
+        .preview-card {
+            background: white;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.26);
+            padding: 14px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        }
+
+        .preview-card h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .preview-card img {
+            width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: rgba(226, 232, 240, 0.55);
+        }
+
+        .preview-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 220px;
+            border-radius: 12px;
+            border: 1px dashed rgba(148, 163, 184, 0.6);
+            color: #64748b;
+            font-size: 13px;
+            background: rgba(226, 232, 240, 0.45);
+        }
+
+        .settings-card {
+            margin-top: 28px;
+            border-radius: 16px;
+            border: 1px solid rgba(129, 140, 248, 0.18);
+            background: rgba(238, 242, 255, 0.35);
+            padding: 22px;
+        }
+
+        .settings-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #312e81;
+            margin-bottom: 16px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .field input {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            padding: 10px 12px;
+            font-size: 14px;
+            background: white;
+            transition: border-color 0.2s ease;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
+        }
+
+        .file-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .file-chip {
+            background: rgba(99, 102, 241, 0.16);
+            color: #312e81;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .controls-row {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .status {
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.info {
+            background: rgba(129, 140, 248, 0.16);
+            color: #312e81;
+            border: 1px solid rgba(99, 102, 241, 0.22);
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.16);
+            color: #065f46;
+            border: 1px solid rgba(34, 197, 94, 0.24);
+        }
+
+        .status.error {
+            background: rgba(248, 113, 113, 0.16);
+            color: #7f1d1d;
+            border: 1px solid rgba(248, 113, 113, 0.26);
+        }
+
+        .results-card {
+            margin-top: 28px;
+            padding: 24px;
+            border-radius: 18px;
+            background: white;
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            box-shadow: 0 24px 48px rgba(79, 70, 229, 0.18);
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 18px;
+        }
+
+        .results-header h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #312e81;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            background: rgba(238, 242, 255, 0.55);
+            border-radius: 12px;
+            border: 1px solid rgba(129, 140, 248, 0.24);
+            padding: 16px;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #312e81;
+        }
+
+        .metric-subvalue {
+            font-size: 12px;
+            color: #4b5563;
+            margin-top: 6px;
+        }
+
+        .result-actions {
+            margin-top: 22px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 740px) {
+            .container {
+                padding: 24px 20px 36px;
+            }
+
+            .input-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .input-actions {
+                width: 100%;
+            }
+
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .controls-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span>🎯</span> JPEG XL Target Size Encoder</h1>
+        <p class="subtitle">Automatically search for the highest-quality JPEG XL output that meets a specific file size goal. All processing happens locally in your browser.</p>
+
+        <div class="input-card" id="dropZone">
+            <div class="input-header">
+                <h2>Source Image</h2>
+                <div class="input-actions">
+                    <button class="btn-secondary" type="button" id="selectFileBtn">📂 Choose File</button>
+                    <button class="btn-danger" type="button" id="clearBtn">🗑️ Clear</button>
+                    <input type="file" class="hidden-input" id="fileInput" accept="image/*">
+                </div>
+            </div>
+            <div class="drop-message" id="dropMessage">
+                Drop an image here, click to browse, or paste directly from your clipboard.
+            </div>
+            <div class="file-info" id="fileInfo" style="display: none;"></div>
+            <div class="preview-grid">
+                <div class="preview-card">
+                    <h3>Input Preview</h3>
+                    <img id="inputPreview" alt="Input preview" class="hidden">
+                    <div class="preview-placeholder" id="inputPlaceholder">No image loaded yet</div>
+                </div>
+                <div class="preview-card">
+                    <h3>Best Match Preview</h3>
+                    <img id="outputPreview" alt="Output preview" class="hidden">
+                    <div class="preview-placeholder" id="outputPlaceholder">Encode to inspect result</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <div class="settings-title">Target Settings</div>
+            <div class="settings-grid">
+                <div class="field">
+                    <label for="targetSize">Target size (KB)</label>
+                    <input type="number" id="targetSize" min="10" step="10" value="500">
+                </div>
+                <div class="field">
+                    <label for="maxQuality">Max quality (1-100)</label>
+                    <input type="number" id="maxQuality" min="1" max="100" value="90">
+                </div>
+                <div class="field">
+                    <label for="minQuality">Min quality (1-100)</label>
+                    <input type="number" id="minQuality" min="1" max="100" value="30">
+                </div>
+                <div class="field">
+                    <label for="minDimension">Minimum dimension (px)</label>
+                    <input type="number" id="minDimension" min="200" step="50" value="800">
+                </div>
+                <div class="field">
+                    <label for="initialDimension">Initial max dimension (px)</label>
+                    <input type="number" id="initialDimension" min="200" step="100" value="1920">
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-row">
+            <button class="btn-primary" type="button" id="encodeBtn" disabled>⚙️ Encode to Target Size</button>
+        </div>
+
+        <div class="status info" id="status"></div>
+
+        <div class="results-card" id="resultsCard">
+            <div class="results-header">
+                <h2>Encoding Result</h2>
+                <span id="attemptSummary" style="font-size: 13px; color: #475569;"></span>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Original Size</div>
+                    <div class="metric-value" id="originalSize">-</div>
+                    <div class="metric-subvalue" id="originalDetails"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Result Size</div>
+                    <div class="metric-value" id="resultSize">-</div>
+                    <div class="metric-subvalue" id="resultDetails"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Quality & Scale</div>
+                    <div class="metric-value" id="qualityValue">-</div>
+                    <div class="metric-subvalue" id="dimensionValue"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Difference from Target</div>
+                    <div class="metric-value" id="differenceValue">-</div>
+                    <div class="metric-subvalue" id="percentValue"></div>
+                </div>
+            </div>
+            <div class="result-actions">
+                <button class="btn-primary" type="button" id="downloadBtn" disabled>💾 Download JPEG XL</button>
+                <button class="btn-secondary" type="button" id="copyBase64Btn" disabled>📋 Copy as Base64</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            JPEG XL encoding powered by WebAssembly (JXL 1.3.0). The binary search follows a quality-first strategy, reducing image dimensions only when needed.
+        </div>
+    </div>
+
+    <script type="module">
+        import loadEncoder from './lib/jxl@1.3.0/jxl_enc.js';
+
+        const defaultOptions = {
+            effort: 7,
+            quality: 75,
+            progressive: false,
+            epf: -1,
+            lossyPalette: false,
+            decodingSpeedTier: 0,
+            photonNoiseIso: 0,
+            lossyModular: false,
+            lossless: false
+        };
+
+        const state = {
+            module: null,
+            moduleReady: false,
+            loadingModule: false,
+            file: null,
+            fileBytes: null,
+            originalWidth: 0,
+            originalHeight: 0,
+            originalPixels: null, // Uint8ClampedArray
+            sourceCanvas: null,
+            dimensionCache: new Map(),
+            outputBytes: null,
+            outputUrl: null,
+            outputInfo: null
+        };
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusEl = document.getElementById('status');
+        const encodeBtn = document.getElementById('encodeBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const inputPreview = document.getElementById('inputPreview');
+        const inputPlaceholder = document.getElementById('inputPlaceholder');
+        const outputPreview = document.getElementById('outputPreview');
+        const outputPlaceholder = document.getElementById('outputPlaceholder');
+        const resultsCard = document.getElementById('resultsCard');
+        const attemptSummary = document.getElementById('attemptSummary');
+        const originalSizeEl = document.getElementById('originalSize');
+        const originalDetailsEl = document.getElementById('originalDetails');
+        const resultSizeEl = document.getElementById('resultSize');
+        const resultDetailsEl = document.getElementById('resultDetails');
+        const qualityValueEl = document.getElementById('qualityValue');
+        const dimensionValueEl = document.getElementById('dimensionValue');
+        const differenceValueEl = document.getElementById('differenceValue');
+        const percentValueEl = document.getElementById('percentValue');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const copyBase64Btn = document.getElementById('copyBase64Btn');
+
+        const targetSizeInput = document.getElementById('targetSize');
+        const maxQualityInput = document.getElementById('maxQuality');
+        const minQualityInput = document.getElementById('minQuality');
+        const minDimensionInput = document.getElementById('minDimension');
+        const initialDimensionInput = document.getElementById('initialDimension');
+
+        const encoderPromise = loadEncoder({
+            locateFile: (path) => `./lib/jxl@1.3.0/${path}`
+        }).then((module) => {
+            state.module = module;
+            state.moduleReady = true;
+        }).catch((error) => {
+            showStatus(`Failed to load JPEG XL encoder: ${error.message}`, 'error');
+            console.error(error);
+        });
+
+        function formatBytes(bytes) {
+            if (!bytes && bytes !== 0) return '-';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const exponent = Math.min(Math.floor(Math.log(bytes || 1) / Math.log(1024)), units.length - 1);
+            const value = bytes / Math.pow(1024, exponent);
+            return `${value.toFixed(exponent === 0 ? 0 : 2)} ${units[exponent]}`;
+        }
+
+        function describeFile(file, bytes) {
+            const parts = [];
+            if (file?.name) parts.push(file.name);
+            if (Number.isFinite(bytes)) parts.push(formatBytes(bytes));
+            if (file?.type) parts.push(file.type);
+            return parts.join(' • ');
+        }
+
+        function showStatus(message, type = 'info') {
+            if (!message) {
+                statusEl.style.display = 'none';
+                statusEl.textContent = '';
+                return;
+            }
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        function resetOutput() {
+            resultsCard.style.display = 'none';
+            downloadBtn.disabled = true;
+            copyBase64Btn.disabled = true;
+            if (state.outputUrl) {
+                URL.revokeObjectURL(state.outputUrl);
+                state.outputUrl = null;
+            }
+            state.outputBytes = null;
+            state.outputInfo = null;
+            outputPreview.classList.add('hidden');
+            outputPreview.removeAttribute('src');
+            outputPlaceholder.textContent = 'Encode to inspect result';
+        }
+
+        function clearInput() {
+            state.file = null;
+            state.fileBytes = null;
+            state.originalPixels = null;
+            state.originalWidth = 0;
+            state.originalHeight = 0;
+            state.dimensionCache.clear();
+            if (state.sourceCanvas) {
+                state.sourceCanvas.width = 0;
+                state.sourceCanvas.height = 0;
+                state.sourceCanvas = null;
+            }
+
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            fileInfo.textContent = '';
+
+            inputPreview.classList.add('hidden');
+            inputPreview.removeAttribute('src');
+            inputPlaceholder.textContent = 'No image loaded yet';
+            resetOutput();
+            updateEncodeAvailability();
+            showStatus('Input cleared.', 'info');
+        }
+
+        async function readFile(file) {
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                showStatus('Unsupported file type. Please choose an image.', 'error');
+                return;
+            }
+
+            showStatus('Loading image…', 'info');
+            state.file = file;
+            state.fileBytes = new Uint8Array(await file.arrayBuffer());
+
+            const previewUrl = URL.createObjectURL(file);
+            inputPreview.onload = () => {
+                URL.revokeObjectURL(previewUrl);
+                inputPreview.onload = null;
+            };
+            inputPreview.src = previewUrl;
+            inputPreview.classList.remove('hidden');
+            inputPlaceholder.textContent = '';
+
+            fileInfo.style.display = 'flex';
+            fileInfo.innerHTML = `
+                <span class="file-chip">${file.name || 'Clipboard image'}</span>
+                <span class="file-chip">${formatBytes(state.fileBytes.length)}</span>
+                <span class="file-chip">${file.type || 'unknown type'}</span>
+            `;
+
+            try {
+                await decodeImageToPixels(file);
+            } catch (error) {
+                console.error('Image decode failed:', error);
+                showStatus('Could not decode image. Try a different file.', 'error');
+                clearInput();
+                return;
+            }
+
+            resetOutput();
+            updateEncodeAvailability();
+            showStatus('Image ready. Adjust settings and encode when ready.', 'success');
+        }
+
+        function ensureSourceCanvas() {
+            if (!state.sourceCanvas) {
+                state.sourceCanvas = document.createElement('canvas');
+            }
+            return state.sourceCanvas;
+        }
+
+        async function decodeImageToPixels(file) {
+            const objectUrl = URL.createObjectURL(file);
+            try {
+                const img = await loadImage(objectUrl);
+                const canvas = ensureSourceCanvas();
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(img, 0, 0);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                state.originalPixels = new Uint8ClampedArray(imageData.data);
+                state.originalWidth = canvas.width;
+                state.originalHeight = canvas.height;
+                state.dimensionCache.clear();
+                state.dimensionCache.set(Math.max(state.originalWidth, state.originalHeight), {
+                    width: state.originalWidth,
+                    height: state.originalHeight,
+                    pixels: state.originalPixels
+                });
+            } finally {
+                URL.revokeObjectURL(objectUrl);
+            }
+        }
+
+        function loadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        function updateEncodeAvailability() {
+            const ready = state.file && state.originalPixels && state.moduleReady;
+            encodeBtn.disabled = !ready;
+        }
+
+        function readSettings() {
+            const targetKB = clampNumber(parseFloat(targetSizeInput.value), 10, 20480);
+            const maxQ = Math.round(clampNumber(parseFloat(maxQualityInput.value), 1, 100));
+            const minQ = Math.round(clampNumber(parseFloat(minQualityInput.value), 1, 100));
+            const minDimension = Math.round(clampNumber(parseFloat(minDimensionInput.value), 100, 10000));
+            const initialDimension = Math.round(clampNumber(parseFloat(initialDimensionInput.value), 100, 10000));
+            const settings = {
+                targetBytes: Math.round(targetKB * 1024),
+                maxQuality: Math.max(minQ, maxQ),
+                minQuality: Math.min(minQ, maxQ),
+                minDimension,
+                initialDimension
+            };
+            return settings;
+        }
+
+        function clampNumber(value, min, max) {
+            if (!Number.isFinite(value)) return min;
+            return Math.min(Math.max(value, min), max);
+        }
+
+        function buildDimensionPlan(settings) {
+            const originalMax = Math.max(state.originalWidth, state.originalHeight);
+            const boundedMin = Math.min(settings.minDimension, originalMax);
+            const startDim = Math.min(Math.max(settings.initialDimension, boundedMin), originalMax);
+            const plan = new Set();
+            plan.add(originalMax);
+            plan.add(startDim);
+
+            let dim = startDim;
+            while (dim > boundedMin) {
+                dim = Math.floor(dim * 0.9);
+                if (dim >= boundedMin) {
+                    plan.add(dim);
+                }
+            }
+            plan.add(boundedMin);
+
+            const sorted = Array.from(plan).filter((value) => value > 0).sort((a, b) => b - a);
+            return sorted;
+        }
+
+        function getOrCreatePixelsForDimension(maxDimension) {
+            const key = Math.max(1, Math.round(maxDimension));
+            if (state.dimensionCache.has(key)) {
+                return state.dimensionCache.get(key);
+            }
+
+            const originalMax = Math.max(state.originalWidth, state.originalHeight);
+            let width = state.originalWidth;
+            let height = state.originalHeight;
+            let pixels = state.originalPixels;
+
+            if (originalMax > key) {
+                const scale = key / originalMax;
+                width = Math.max(1, Math.round(state.originalWidth * scale));
+                height = Math.max(1, Math.round(state.originalHeight * scale));
+
+                const canvas = ensureSourceCanvas();
+                const resizeCanvas = document.createElement('canvas');
+                resizeCanvas.width = width;
+                resizeCanvas.height = height;
+                const ctx = resizeCanvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.drawImage(canvas, 0, 0, width, height);
+                const imageData = ctx.getImageData(0, 0, width, height);
+                pixels = new Uint8ClampedArray(imageData.data);
+            }
+
+            const result = { width, height, pixels };
+            state.dimensionCache.set(key, result);
+            return result;
+        }
+
+        function encodePixels(pixels, width, height, quality) {
+            const options = Object.assign({}, defaultOptions, { quality: Math.round(quality), lossless: false });
+            const bytesView = pixels instanceof Uint8Array
+                ? pixels
+                : new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength);
+            return state.module.encode(bytesView, width, height, options);
+        }
+
+        async function runEncoding() {
+            if (!state.file || !state.originalPixels) {
+                showStatus('Load an image first.', 'error');
+                return;
+            }
+
+            if (!state.moduleReady) {
+                showStatus('Encoder still loading, please wait a moment.', 'error');
+                return;
+            }
+
+            const settings = readSettings();
+            if (settings.minQuality > settings.maxQuality) {
+                showStatus('Minimum quality cannot exceed maximum quality.', 'error');
+                return;
+            }
+
+            resetOutput();
+            encodeBtn.disabled = true;
+            showStatus('Searching for the best encoding…', 'info');
+
+            const dimensions = buildDimensionPlan(settings);
+            const targetBytes = settings.targetBytes;
+            let bestMatch = null;
+            let closestMatch = null;
+            let attempts = 0;
+
+            try {
+                for (const dim of dimensions) {
+                    const { width, height, pixels } = getOrCreatePixelsForDimension(dim);
+                    let low = settings.minQuality;
+                    let high = settings.maxQuality;
+                    let bestForThisSize = null;
+
+                    while (low <= high) {
+                        const mid = Math.floor((low + high) / 2);
+                        attempts += 1;
+                        let encoded;
+                        try {
+                            encoded = encodePixels(pixels, width, height, mid);
+                        } catch (error) {
+                            console.error('Encoding attempt failed:', error);
+                            showStatus('Encoding failed. Check console for details.', 'error');
+                            encodeBtn.disabled = false;
+                            return;
+                        }
+
+                        const size = encoded.length;
+                        updateClosestMatch();
+
+                        if (size <= targetBytes) {
+                            bestForThisSize = makeResult(encoded, size, mid, width, height, dim);
+                            low = mid + 1;
+                        } else {
+                            high = mid - 1;
+                        }
+
+                        function updateClosestMatch() {
+                            const result = makeResult(encoded, size, mid, width, height, dim);
+                            if (!closestMatch) {
+                                closestMatch = result;
+                                return;
+                            }
+                            const currentGap = Math.abs(result.bytes - targetBytes);
+                            const closestGap = Math.abs(closestMatch.bytes - targetBytes);
+                            if (currentGap < closestGap || (currentGap === closestGap && result.bytes < closestMatch.bytes)) {
+                                closestMatch = result;
+                            }
+                        }
+                    }
+
+                    if (bestForThisSize) {
+                        bestMatch = bestForThisSize;
+                        break;
+                    }
+                }
+
+                const finalResult = bestMatch || closestMatch;
+                if (!finalResult) {
+                    showStatus('Encoding failed to produce output.', 'error');
+                    return;
+                }
+
+                presentResult(finalResult, targetBytes, attempts, Boolean(bestMatch));
+                showStatus(bestMatch ? 'Target met successfully.' : 'Target not met exactly, showing closest result.', bestMatch ? 'success' : 'info');
+            } finally {
+                encodeBtn.disabled = false;
+            }
+        }
+
+        function makeResult(encoded, bytes, quality, width, height, dimension) {
+            const copy = encoded.slice();
+            return {
+                bytes,
+                quality,
+                width,
+                height,
+                dimension,
+                data: copy
+            };
+        }
+
+        function presentResult(result, targetBytes, attempts, metTarget) {
+            if (state.outputUrl) {
+                URL.revokeObjectURL(state.outputUrl);
+            }
+            state.outputBytes = result.data;
+            state.outputUrl = URL.createObjectURL(new Blob([result.data], { type: 'image/jxl' }));
+            state.outputInfo = result;
+
+            outputPreview.src = state.outputUrl;
+            outputPreview.classList.remove('hidden');
+            outputPlaceholder.textContent = 'Your browser must support JPEG XL for inline preview.';
+
+            downloadBtn.disabled = false;
+            copyBase64Btn.disabled = false;
+
+            const diff = result.bytes - targetBytes;
+            const percentDiff = targetBytes ? (diff / targetBytes) * 100 : 0;
+
+            attemptSummary.textContent = `${attempts} encode attempts • ${metTarget ? 'target met' : 'closest match'}`;
+            originalSizeEl.textContent = formatBytes(state.fileBytes.length);
+            originalDetailsEl.textContent = describeFile(state.file, state.fileBytes.length);
+            resultSizeEl.textContent = formatBytes(result.bytes);
+            resultDetailsEl.textContent = `Quality ${result.quality} | ${result.width}×${result.height}`;
+            qualityValueEl.textContent = `Q${result.quality}`;
+            dimensionValueEl.textContent = `Max dimension ${result.dimension}px`;
+            differenceValueEl.textContent = `${diff >= 0 ? '+' : ''}${formatBytes(Math.abs(diff))}`;
+            percentValueEl.textContent = `${diff >= 0 ? '+' : ''}${percentDiff.toFixed(2)}% vs target`;
+
+            resultsCard.style.display = 'block';
+        }
+
+        async function copyOutputAsBase64() {
+            if (!state.outputBytes) return;
+            try {
+                const base64 = await bytesToBase64(state.outputBytes);
+                await navigator.clipboard.writeText(`data:image/jxl;base64,${base64}`);
+                showStatus('JPEG XL Base64 copied to clipboard.', 'success');
+            } catch (error) {
+                console.error('Copy failed:', error);
+                showStatus('Unable to copy Base64 data.', 'error');
+            }
+        }
+
+        function bytesToBase64(bytes) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const { result } = reader;
+                    if (typeof result === 'string') {
+                        const [, base64] = result.split(',');
+                        resolve(base64 || '');
+                    } else {
+                        reject(new Error('Unexpected reader result.'));
+                    }
+                };
+                reader.onerror = () => reject(reader.error || new Error('Failed to read blob.'));
+                reader.readAsDataURL(new Blob([bytes], { type: 'image/jxl' }));
+            });
+        }
+
+        encodeBtn.addEventListener('click', () => {
+            runEncoding().catch((error) => {
+                console.error('Unexpected error during encoding:', error);
+                showStatus(`Unexpected error: ${error.message}`, 'error');
+            });
+        });
+
+        selectFileBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            fileInput.click();
+        });
+
+        clearBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            clearInput();
+        });
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files?.[0];
+            if (file) {
+                await readFile(file);
+            }
+        });
+
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = event.dataTransfer?.files?.[0];
+            if (file) {
+                await readFile(file);
+            }
+        });
+
+        dropZone.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target instanceof Element && target.closest('.input-actions')) {
+                return;
+            }
+            fileInput.click();
+        });
+
+        document.addEventListener('paste', async (event) => {
+            const items = event.clipboardData?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        await readFile(file);
+                        break;
+                    }
+                }
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!state.outputBytes) return;
+            const anchor = document.createElement('a');
+            anchor.href = state.outputUrl;
+            const basename = state.file?.name ? state.file.name.replace(/\.[^.]+$/, '') : 'image';
+            anchor.download = `${basename}-target-${targetSizeInput.value}kb.jxl`;
+            anchor.click();
+        });
+
+        copyBase64Btn.addEventListener('click', copyOutputAsBase64);
+
+        targetSizeInput.addEventListener('change', () => showStatus('', 'info'));
+        maxQualityInput.addEventListener('change', () => showStatus('', 'info'));
+        minQualityInput.addEventListener('change', () => showStatus('', 'info'));
+        minDimensionInput.addEventListener('change', () => showStatus('', 'info'));
+        initialDimensionInput.addEventListener('change', () => showStatus('', 'info'));
+
+        showStatus('Initializing JPEG XL encoder…', 'info');
+        encoderPromise.then(() => {
+            updateEncodeAvailability();
+            if (state.moduleReady) {
+                showStatus('Encoder ready. Load an image to begin.', 'success');
+            }
+        });
+    </script>
+</body>
+</html>
