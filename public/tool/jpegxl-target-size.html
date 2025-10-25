@@ -127,6 +127,17 @@
             box-shadow: 0 12px 20px rgba(99, 102, 241, 0.22);
         }
 
+        .btn-busy {
+            background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+            color: white;
+            box-shadow: 0 15px 22px rgba(249, 115, 22, 0.28);
+        }
+
+        button.btn-busy:disabled {
+            opacity: 1;
+            cursor: wait;
+        }
+
         .btn-danger {
             background: rgba(239, 68, 68, 0.16);
             color: #b91c1c;
@@ -445,6 +456,7 @@
 
         <div class="controls-row">
             <button class="btn-primary" type="button" id="encodeBtn" disabled>⚙️ Encode to Target Size</button>
+            <button class="btn-danger" type="button" id="reloadBtn" style="display: none;">🔄 Cancel and Force Reload</button>
         </div>
 
         <div class="status info" id="status"></div>
@@ -525,6 +537,7 @@
         const clearBtn = document.getElementById('clearBtn');
         const statusEl = document.getElementById('status');
         const encodeBtn = document.getElementById('encodeBtn');
+        const reloadBtn = document.getElementById('reloadBtn');
         const fileInfo = document.getElementById('fileInfo');
         const inputPreview = document.getElementById('inputPreview');
         const inputPlaceholder = document.getElementById('inputPlaceholder');
@@ -542,6 +555,10 @@
         const percentValueEl = document.getElementById('percentValue');
         const downloadBtn = document.getElementById('downloadBtn');
         const copyBase64Btn = document.getElementById('copyBase64Btn');
+
+        const encodeBtnDefaultLabel = encodeBtn.textContent;
+
+        let encodingActive = false;
 
         const targetSizeInput = document.getElementById('targetSize');
         const maxQualityInput = document.getElementById('maxQuality');
@@ -573,6 +590,32 @@
             if (Number.isFinite(bytes)) parts.push(formatBytes(bytes));
             if (file?.type) parts.push(file.type);
             return parts.join(' • ');
+        }
+
+        function renderFileInfo(loadingDimensions = false) {
+            if (!state.file || !state.fileBytes) {
+                fileInfo.style.display = 'none';
+                fileInfo.textContent = '';
+                return;
+            }
+
+            const chips = [];
+            chips.push(`<span class="file-chip">${state.file.name || 'Clipboard image'}</span>`);
+            chips.push(`<span class="file-chip">${formatBytes(state.fileBytes.length)}</span>`);
+            if (state.file.type) {
+                chips.push(`<span class="file-chip">${state.file.type}</span>`);
+            } else {
+                chips.push('<span class="file-chip">unknown type</span>');
+            }
+
+            if (state.originalWidth && state.originalHeight) {
+                chips.push(`<span class="file-chip">${state.originalWidth}×${state.originalHeight}px</span>`);
+            } else if (loadingDimensions) {
+                chips.push('<span class="file-chip">Determining dimensions…</span>');
+            }
+
+            fileInfo.innerHTML = chips.join('\n');
+            fileInfo.style.display = 'flex';
         }
 
         function showStatus(message, type = 'info') {
@@ -615,8 +658,7 @@
             }
 
             fileInput.value = '';
-            fileInfo.style.display = 'none';
-            fileInfo.textContent = '';
+            renderFileInfo();
 
             inputPreview.classList.add('hidden');
             inputPreview.removeAttribute('src');
@@ -646,15 +688,11 @@
             inputPreview.classList.remove('hidden');
             inputPlaceholder.textContent = '';
 
-            fileInfo.style.display = 'flex';
-            fileInfo.innerHTML = `
-                <span class="file-chip">${file.name || 'Clipboard image'}</span>
-                <span class="file-chip">${formatBytes(state.fileBytes.length)}</span>
-                <span class="file-chip">${file.type || 'unknown type'}</span>
-            `;
+            renderFileInfo(true);
 
             try {
                 await decodeImageToPixels(file);
+                renderFileInfo();
             } catch (error) {
                 console.error('Image decode failed:', error);
                 showStatus('Could not decode image. Try a different file.', 'error');
@@ -708,8 +746,27 @@
         }
 
         function updateEncodeAvailability() {
+            if (encodingActive) {
+                encodeBtn.disabled = true;
+                return;
+            }
             const ready = state.file && state.originalPixels && state.moduleReady;
             encodeBtn.disabled = !ready;
+        }
+
+        function setEncodingState(active) {
+            encodingActive = active;
+            if (active) {
+                encodeBtn.classList.add('btn-busy');
+                encodeBtn.disabled = true;
+                encodeBtn.textContent = '⏳ Encoding…';
+                reloadBtn.style.display = 'inline-flex';
+            } else {
+                encodeBtn.classList.remove('btn-busy');
+                encodeBtn.textContent = encodeBtnDefaultLabel;
+                reloadBtn.style.display = 'none';
+                updateEncodeAvailability();
+            }
         }
 
         function readSettings() {
@@ -812,11 +869,12 @@
             }
 
             resetOutput();
-            encodeBtn.disabled = true;
+            setEncodingState(true);
             showStatus('Searching for the best encoding…', 'info');
 
             const dimensions = buildDimensionPlan(settings);
             const targetBytes = settings.targetBytes;
+            const targetLabel = formatBytes(targetBytes);
             let bestMatch = null;
             let closestMatch = null;
             let attempts = 0;
@@ -837,11 +895,11 @@
                         } catch (error) {
                             console.error('Encoding attempt failed:', error);
                             showStatus('Encoding failed. Check console for details.', 'error');
-                            encodeBtn.disabled = false;
                             return;
                         }
 
                         const size = encoded.length;
+                        showStatus(`Attempt ${attempts}: Q${mid} @ ${width}×${height} -> ${formatBytes(size)} (target ${targetLabel})`, 'info');
                         updateClosestMatch();
 
                         if (size <= targetBytes) {
@@ -880,7 +938,7 @@
                 presentResult(finalResult, targetBytes, attempts, Boolean(bestMatch));
                 showStatus(bestMatch ? 'Target met successfully.' : 'Target not met exactly, showing closest result.', bestMatch ? 'success' : 'info');
             } finally {
-                encodeBtn.disabled = false;
+                setEncodingState(false);
             }
         }
 
@@ -916,7 +974,9 @@
 
             attemptSummary.textContent = `${attempts} encode attempts • ${metTarget ? 'target met' : 'closest match'}`;
             originalSizeEl.textContent = formatBytes(state.fileBytes.length);
-            originalDetailsEl.textContent = describeFile(state.file, state.fileBytes.length);
+            const originalDetails = describeFile(state.file, state.fileBytes.length);
+            const originalDims = state.originalWidth && state.originalHeight ? ` • ${state.originalWidth}×${state.originalHeight}px` : '';
+            originalDetailsEl.textContent = `${originalDetails}${originalDims}`;
             resultSizeEl.textContent = formatBytes(result.bytes);
             resultDetailsEl.textContent = `Quality ${result.quality} | ${result.width}×${result.height}`;
             qualityValueEl.textContent = `Q${result.quality}`;
@@ -1030,6 +1090,9 @@
         });
 
         copyBase64Btn.addEventListener('click', copyOutputAsBase64);
+        reloadBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
 
         targetSizeInput.addEventListener('change', () => showStatus('', 'info'));
         maxQualityInput.addEventListener('change', () => showStatus('', 'info'));
