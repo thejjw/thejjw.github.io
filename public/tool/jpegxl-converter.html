@@ -644,10 +644,8 @@
         function updateConvertAvailability() {
             const hasBytes = state.originalBytes && state.originalBytes.length;
             const moduleReady = Boolean(state.module);
-            let enabled = hasBytes && moduleReady;
-            if (state.mode === 'encode') {
-                enabled = enabled && state.rgbaPixels && state.width > 0 && state.height > 0;
-            } else if (state.mode === 'transcode') {
+            let enabled = hasBytes && moduleReady && state.rgbaPixels && state.width > 0 && state.height > 0;
+            if (state.mode === 'transcode') {
                 enabled = enabled && state.file?.type === 'image/jpeg';
             }
             convertBtn.disabled = !enabled;
@@ -679,15 +677,20 @@
                 <span class="file-chip">${file.type || 'unknown type'}</span>
             `;
 
-            if (state.mode === 'encode' || file.type !== 'image/jpeg') {
+            try {
                 const imageData = await extractImagePixels(file);
                 state.width = imageData.width;
                 state.height = imageData.height;
                 state.rgbaPixels = imageData.pixels;
-            } else {
+            } catch (error) {
+                console.error('Failed to extract pixels:', error);
                 state.width = 0;
                 state.height = 0;
                 state.rgbaPixels = null;
+                resetOutput();
+                updateConvertAvailability();
+                showStatus('Could not decode image for encoding.', 'error');
+                return;
             }
 
             resetOutput();
@@ -746,7 +749,7 @@
                 return;
             }
 
-            if (state.mode === 'encode' && (!state.rgbaPixels || !state.width || !state.height)) {
+            if (!state.rgbaPixels || !state.width || !state.height) {
                 showStatus('Image pixels unavailable. Reload the image and try again.', 'error');
                 return;
             }
@@ -757,14 +760,11 @@
 
             try {
                 const start = performance.now();
-                let encoded;
-                if (state.mode === 'transcode') {
-                    const options = buildOptions({ lossless: true, quality: state.quality });
-                    encoded = state.module.encode(state.originalBytes, 0, 0, options);
-                } else {
-                    const options = buildOptions({ lossless: false, quality: state.quality });
-                    encoded = state.module.encode(state.rgbaPixels, state.width, state.height, options);
-                }
+                const options = state.mode === 'transcode'
+                    ? buildOptions({ lossless: true, quality: state.quality })
+                    : buildOptions({ lossless: false, quality: state.quality });
+
+                const encoded = state.module.encode(state.rgbaPixels, state.width, state.height, options);
 
                 if (!(encoded instanceof Uint8Array) || encoded.length === 0) {
                     throw new Error('Encoder returned an unexpected response.');
@@ -837,8 +837,14 @@
         }
 
         convertBtn.addEventListener('click', runConversion);
-        selectFileBtn.addEventListener('click', () => fileInput.click());
-        clearBtn.addEventListener('click', clearInput);
+        selectFileBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            fileInput.click();
+        });
+        clearBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            clearInput();
+        });
         downloadBtn.addEventListener('click', () => {
             if (!state.outputBytes) return;
             const anchor = document.createElement('a');
@@ -874,7 +880,13 @@
             }
         });
 
-        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target instanceof Element && target.closest('.input-actions')) {
+                return;
+            }
+            fileInput.click();
+        });
 
         document.addEventListener('paste', async (event) => {
             const items = event.clipboardData?.items;
