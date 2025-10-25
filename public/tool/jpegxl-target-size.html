@@ -235,7 +235,7 @@
             margin-bottom: 6px;
         }
 
-        .field input {
+        .field input[type="number"] {
             width: 100%;
             border-radius: 10px;
             border: 1px solid rgba(148, 163, 184, 0.5);
@@ -245,10 +245,39 @@
             transition: border-color 0.2s ease;
         }
 
-        .field input:focus {
+        .field input[type="number"]:focus {
             outline: none;
             border-color: #6366f1;
             box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
+        }
+
+        .checkbox-field {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .checkbox-field label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+
+        .checkbox-field input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #4f46e5;
+            cursor: pointer;
+        }
+
+        .checkbox-helper {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.4;
         }
 
         .file-info {
@@ -451,6 +480,13 @@
                     <label for="initialDimension">Initial max dimension (px)</label>
                     <input type="number" id="initialDimension" min="200" step="100" value="1920">
                 </div>
+                <div class="field checkbox-field">
+                    <label for="legacyJpegCheckbox">
+                        <input type="checkbox" id="legacyJpegCheckbox">
+                        <span>Export as legacy JPEG</span>
+                    </label>
+                    <div class="checkbox-helper">Use browser JPEG encoding for maximum compatibility. Quality search still applies.</div>
+                </div>
             </div>
         </div>
 
@@ -489,8 +525,8 @@
                 </div>
             </div>
             <div class="result-actions">
-                <button class="btn-primary" type="button" id="downloadBtn" disabled>💾 Download JPEG XL</button>
-                <button class="btn-secondary" type="button" id="copyBase64Btn" disabled>📋 Copy as Base64</button>
+                <button class="btn-primary" type="button" id="downloadBtn" disabled>💾 Download Result</button>
+                <button class="btn-secondary" type="button" id="copyBase64Btn" disabled>📋 Copy Result as Base64</button>
             </div>
         </div>
 
@@ -525,10 +561,12 @@
             originalHeight: 0,
             originalPixels: null, // Uint8ClampedArray
             sourceCanvas: null,
+            workCanvas: null,
             dimensionCache: new Map(),
             outputBytes: null,
             outputUrl: null,
-            outputInfo: null
+            outputInfo: null,
+            useLegacyJpeg: false
         };
 
         const dropZone = document.getElementById('dropZone');
@@ -565,6 +603,9 @@
         const minQualityInput = document.getElementById('minQuality');
         const minDimensionInput = document.getElementById('minDimension');
         const initialDimensionInput = document.getElementById('initialDimension');
+        const legacyJpegCheckbox = document.getElementById('legacyJpegCheckbox');
+
+        state.useLegacyJpeg = legacyJpegCheckbox.checked;
 
         const encoderPromise = loadEncoder({
             locateFile: (path) => `./lib/jxl@1.3.0/${path}`
@@ -642,6 +683,8 @@
             outputPreview.classList.add('hidden');
             outputPreview.removeAttribute('src');
             outputPlaceholder.textContent = 'Encode to inspect result';
+            downloadBtn.textContent = '💾 Download Result';
+            copyBase64Btn.textContent = '📋 Copy Result as Base64';
         }
 
         function clearInput() {
@@ -712,6 +755,13 @@
             return state.sourceCanvas;
         }
 
+        function ensureWorkCanvas() {
+            if (!state.workCanvas) {
+                state.workCanvas = document.createElement('canvas');
+            }
+            return state.workCanvas;
+        }
+
         async function decodeImageToPixels(file) {
             const objectUrl = URL.createObjectURL(file);
             try {
@@ -726,11 +776,13 @@
                 state.originalWidth = canvas.width;
                 state.originalHeight = canvas.height;
                 state.dimensionCache.clear();
-                state.dimensionCache.set(Math.max(state.originalWidth, state.originalHeight), {
+                const originalEntry = {
                     width: state.originalWidth,
                     height: state.originalHeight,
-                    pixels: state.originalPixels
-                });
+                    pixels: state.originalPixels,
+                    imageData: new ImageData(state.originalPixels, state.originalWidth, state.originalHeight)
+                };
+                state.dimensionCache.set(Math.max(state.originalWidth, state.originalHeight), originalEntry);
             } finally {
                 URL.revokeObjectURL(objectUrl);
             }
@@ -750,7 +802,8 @@
                 encodeBtn.disabled = true;
                 return;
             }
-            const ready = state.file && state.originalPixels && state.moduleReady;
+            const encoderReady = state.useLegacyJpeg ? true : state.moduleReady;
+            const ready = state.file && state.originalPixels && encoderReady;
             encodeBtn.disabled = !ready;
         }
 
@@ -814,7 +867,15 @@
         function getOrCreatePixelsForDimension(maxDimension) {
             const key = Math.max(1, Math.round(maxDimension));
             if (state.dimensionCache.has(key)) {
-                return state.dimensionCache.get(key);
+                const existing = state.dimensionCache.get(key);
+                if (existing && !existing.imageData) {
+                    const pixels = existing.pixels instanceof Uint8ClampedArray
+                        ? existing.pixels
+                        : new Uint8ClampedArray(existing.pixels.buffer, existing.pixels.byteOffset, existing.pixels.byteLength);
+                    existing.imageData = new ImageData(pixels, existing.width, existing.height);
+                    existing.pixels = pixels;
+                }
+                return existing;
             }
 
             const originalMax = Math.max(state.originalWidth, state.originalHeight);
@@ -838,17 +899,64 @@
                 pixels = new Uint8ClampedArray(imageData.data);
             }
 
-            const result = { width, height, pixels };
+            const result = {
+                width,
+                height,
+                pixels,
+                imageData: new ImageData(pixels, width, height)
+            };
             state.dimensionCache.set(key, result);
             return result;
         }
 
-        function encodePixels(pixels, width, height, quality) {
+        function encodePixels(entry, quality, preparedCanvas) {
+            if (state.useLegacyJpeg) {
+                return encodePixelsAsJpeg(entry, quality, preparedCanvas);
+            }
+            return encodePixelsAsJxl(entry, quality);
+        }
+
+        function encodePixelsAsJxl(entry, quality) {
             const options = Object.assign({}, defaultOptions, { quality: Math.round(quality), lossless: false });
-            const bytesView = pixels instanceof Uint8Array
-                ? pixels
-                : new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength);
-            return state.module.encode(bytesView, width, height, options);
+            const bytesView = entry.pixels instanceof Uint8Array
+                ? entry.pixels
+                : new Uint8Array(entry.pixels.buffer, entry.pixels.byteOffset, entry.pixels.byteLength);
+            return Promise.resolve(state.module.encode(bytesView, entry.width, entry.height, options));
+        }
+
+        function prepareCanvasForJpeg(entry) {
+            const canvas = ensureWorkCanvas();
+            const { width, height } = entry;
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            if (!entry.imageData) {
+                const pixels = entry.pixels instanceof Uint8ClampedArray
+                    ? entry.pixels
+                    : new Uint8ClampedArray(entry.pixels.buffer, entry.pixels.byteOffset, entry.pixels.byteLength);
+                entry.imageData = new ImageData(pixels, width, height);
+            }
+            ctx.putImageData(entry.imageData, 0, 0);
+            return canvas;
+        }
+
+        function encodePixelsAsJpeg(entry, quality, preparedCanvas) {
+            const canvas = preparedCanvas || prepareCanvasForJpeg(entry);
+            const q = Math.min(Math.max(quality / 100, 0.01), 1);
+            return new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        reject(new Error('Browser did not return a JPEG blob.'));
+                        return;
+                    }
+                    blob.arrayBuffer().then((buffer) => {
+                        resolve(new Uint8Array(buffer));
+                    }).catch(reject);
+                }, 'image/jpeg', q);
+            });
         }
 
         async function runEncoding() {
@@ -857,7 +965,7 @@
                 return;
             }
 
-            if (!state.moduleReady) {
+            if (!state.useLegacyJpeg && !state.moduleReady) {
                 showStatus('Encoder still loading, please wait a moment.', 'error');
                 return;
             }
@@ -875,23 +983,32 @@
             const dimensions = buildDimensionPlan(settings);
             const targetBytes = settings.targetBytes;
             const targetLabel = formatBytes(targetBytes);
+            const activeMime = state.useLegacyJpeg ? 'image/jpeg' : 'image/jxl';
+            const activeExtension = state.useLegacyJpeg ? 'jpg' : 'jxl';
+            const modeLabel = state.useLegacyJpeg ? 'Legacy JPEG' : 'JPEG XL';
             let bestMatch = null;
             let closestMatch = null;
             let attempts = 0;
 
             try {
                 for (const dim of dimensions) {
-                    const { width, height, pixels } = getOrCreatePixelsForDimension(dim);
+                    const dimensionEntry = getOrCreatePixelsForDimension(dim);
+                    const { width, height } = dimensionEntry;
                     let low = settings.minQuality;
                     let high = settings.maxQuality;
                     let bestForThisSize = null;
+                    let preparedCanvas = null;
+
+                    if (state.useLegacyJpeg) {
+                        preparedCanvas = prepareCanvasForJpeg(dimensionEntry);
+                    }
 
                     while (low <= high) {
                         const mid = Math.floor((low + high) / 2);
                         attempts += 1;
                         let encoded;
                         try {
-                            encoded = encodePixels(pixels, width, height, mid);
+                            encoded = await encodePixels(dimensionEntry, mid, preparedCanvas);
                         } catch (error) {
                             console.error('Encoding attempt failed:', error);
                             showStatus('Encoding failed. Check console for details.', 'error');
@@ -899,18 +1016,18 @@
                         }
 
                         const size = encoded.length;
-                        showStatus(`Attempt ${attempts}: Q${mid} @ ${width}×${height} -> ${formatBytes(size)} (target ${targetLabel})`, 'info');
+                        showStatus(`Attempt ${attempts}: ${modeLabel} Q${mid} @ ${width}×${height} -> ${formatBytes(size)} (target ${targetLabel})`, 'info');
                         updateClosestMatch();
 
                         if (size <= targetBytes) {
-                            bestForThisSize = makeResult(encoded, size, mid, width, height, dim);
+                            bestForThisSize = makeResult(encoded, size, mid, width, height, dim, activeMime, activeExtension);
                             low = mid + 1;
                         } else {
                             high = mid - 1;
                         }
 
                         function updateClosestMatch() {
-                            const result = makeResult(encoded, size, mid, width, height, dim);
+                            const result = makeResult(encoded, size, mid, width, height, dim, activeMime, activeExtension);
                             if (!closestMatch) {
                                 closestMatch = result;
                                 return;
@@ -935,14 +1052,14 @@
                     return;
                 }
 
-                presentResult(finalResult, targetBytes, attempts, Boolean(bestMatch));
+                presentResult(finalResult, targetBytes, attempts, Boolean(bestMatch), modeLabel);
                 showStatus(bestMatch ? 'Target met successfully.' : 'Target not met exactly, showing closest result.', bestMatch ? 'success' : 'info');
             } finally {
                 setEncodingState(false);
             }
         }
 
-        function makeResult(encoded, bytes, quality, width, height, dimension) {
+        function makeResult(encoded, bytes, quality, width, height, dimension, mime, extension) {
             const copy = encoded.slice();
             return {
                 bytes,
@@ -950,35 +1067,42 @@
                 width,
                 height,
                 dimension,
-                data: copy
+                data: copy,
+                mime,
+                extension
             };
         }
 
-        function presentResult(result, targetBytes, attempts, metTarget) {
+        function presentResult(result, targetBytes, attempts, metTarget, modeLabel) {
             if (state.outputUrl) {
                 URL.revokeObjectURL(state.outputUrl);
             }
             state.outputBytes = result.data;
-            state.outputUrl = URL.createObjectURL(new Blob([result.data], { type: 'image/jxl' }));
+            state.outputUrl = URL.createObjectURL(new Blob([result.data], { type: result.mime }));
             state.outputInfo = result;
 
             outputPreview.src = state.outputUrl;
             outputPreview.classList.remove('hidden');
-            outputPlaceholder.textContent = 'Your browser must support JPEG XL for inline preview.';
+            outputPlaceholder.textContent = result.mime === 'image/jpeg'
+                ? 'Result preview shown below.'
+                : 'Your browser must support JPEG XL for inline preview.';
 
             downloadBtn.disabled = false;
             copyBase64Btn.disabled = false;
+            const modeText = result.mime === 'image/jpeg' ? 'JPEG' : 'JPEG XL';
+            downloadBtn.textContent = `💾 Download ${modeText}`;
+            copyBase64Btn.textContent = `📋 Copy ${modeText} as Base64`;
 
             const diff = result.bytes - targetBytes;
             const percentDiff = targetBytes ? (diff / targetBytes) * 100 : 0;
 
-            attemptSummary.textContent = `${attempts} encode attempts • ${metTarget ? 'target met' : 'closest match'}`;
+            attemptSummary.textContent = `${attempts} encode attempts • ${metTarget ? 'target met' : 'closest match'} • ${modeLabel}`;
             originalSizeEl.textContent = formatBytes(state.fileBytes.length);
             const originalDetails = describeFile(state.file, state.fileBytes.length);
             const originalDims = state.originalWidth && state.originalHeight ? ` • ${state.originalWidth}×${state.originalHeight}px` : '';
             originalDetailsEl.textContent = `${originalDetails}${originalDims}`;
             resultSizeEl.textContent = formatBytes(result.bytes);
-            resultDetailsEl.textContent = `Quality ${result.quality} | ${result.width}×${result.height}`;
+            resultDetailsEl.textContent = `Quality ${result.quality} | ${result.width}×${result.height} | ${modeText}`;
             qualityValueEl.textContent = `Q${result.quality}`;
             dimensionValueEl.textContent = `Max dimension ${result.dimension}px`;
             differenceValueEl.textContent = `${diff >= 0 ? '+' : ''}${formatBytes(Math.abs(diff))}`;
@@ -990,16 +1114,19 @@
         async function copyOutputAsBase64() {
             if (!state.outputBytes) return;
             try {
-                const base64 = await bytesToBase64(state.outputBytes);
-                await navigator.clipboard.writeText(`data:image/jxl;base64,${base64}`);
-                showStatus('JPEG XL Base64 copied to clipboard.', 'success');
+                const mime = state.outputInfo?.mime || 'application/octet-stream';
+                const base64 = await bytesToBase64(state.outputBytes, mime);
+                await navigator.clipboard.writeText(`data:${mime};base64,${base64}`);
+                const label = mime === 'image/jpeg' ? 'JPEG' : 'JPEG XL';
+                showStatus(`${label} Base64 copied to clipboard.`, 'success');
             } catch (error) {
                 console.error('Copy failed:', error);
                 showStatus('Unable to copy Base64 data.', 'error');
             }
         }
 
-        function bytesToBase64(bytes) {
+        function bytesToBase64(bytes, mime) {
+            const blobMime = mime || 'application/octet-stream';
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => {
@@ -1012,7 +1139,7 @@
                     }
                 };
                 reader.onerror = () => reject(reader.error || new Error('Failed to read blob.'));
-                reader.readAsDataURL(new Blob([bytes], { type: 'image/jxl' }));
+                reader.readAsDataURL(new Blob([bytes], { type: blobMime }));
             });
         }
 
@@ -1085,7 +1212,8 @@
             const anchor = document.createElement('a');
             anchor.href = state.outputUrl;
             const basename = state.file?.name ? state.file.name.replace(/\.[^.]+$/, '') : 'image';
-            anchor.download = `${basename}-target-${targetSizeInput.value}kb.jxl`;
+            const extension = state.outputInfo?.extension || (state.useLegacyJpeg ? 'jpg' : 'jxl');
+            anchor.download = `${basename}-target-${targetSizeInput.value}kb.${extension}`;
             anchor.click();
         });
 
@@ -1094,17 +1222,41 @@
             window.location.reload();
         });
 
+        legacyJpegCheckbox.addEventListener('change', () => {
+            if (encodingActive) {
+                legacyJpegCheckbox.checked = state.useLegacyJpeg;
+                showStatus('Wait for the current encode to finish before changing output mode.', 'error');
+                return;
+            }
+            state.useLegacyJpeg = legacyJpegCheckbox.checked;
+            resetOutput();
+            updateEncodeAvailability();
+            if (state.useLegacyJpeg) {
+                const message = state.file ? 'Legacy JPEG mode enabled. Encode again to produce a JPEG result.' : 'Legacy JPEG mode enabled. Load an image to begin.';
+                showStatus(message, 'info');
+            } else if (state.moduleReady) {
+                const message = state.file ? 'Switched back to JPEG XL. Encode again to produce a JPEG XL result.' : 'JPEG XL encoder ready. Load an image to begin.';
+                showStatus(message, 'success');
+            } else {
+                showStatus('Initializing JPEG XL encoder…', 'info');
+            }
+        });
+
         targetSizeInput.addEventListener('change', () => showStatus('', 'info'));
         maxQualityInput.addEventListener('change', () => showStatus('', 'info'));
         minQualityInput.addEventListener('change', () => showStatus('', 'info'));
         minDimensionInput.addEventListener('change', () => showStatus('', 'info'));
         initialDimensionInput.addEventListener('change', () => showStatus('', 'info'));
 
-        showStatus('Initializing JPEG XL encoder…', 'info');
+        if (state.useLegacyJpeg) {
+            showStatus('Legacy JPEG mode enabled. Load an image to begin.', 'info');
+        } else {
+            showStatus('Initializing JPEG XL encoder…', 'info');
+        }
         encoderPromise.then(() => {
             updateEncodeAvailability();
-            if (state.moduleReady) {
-                showStatus('Encoder ready. Load an image to begin.', 'success');
+            if (!state.useLegacyJpeg && !state.file) {
+                showStatus('JPEG XL encoder ready. Load an image to begin.', 'success');
             }
         });
     </script>
