@@ -74,6 +74,37 @@
             margin-bottom: 25px;
         }
 
+        .input-mode-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .radio-option input {
+            accent-color: #667eea;
+        }
+
+        .radio-option.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            color: #374151;
+        }
+
         .section-title {
             font-size: 16px;
             font-weight: 600;
@@ -107,6 +138,51 @@
         textarea:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        .image-dropzone {
+            border: 2px dashed #c7d2fe;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            background: #f9faff;
+            color: #4b5563;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .image-dropzone.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.15);
+            color: #1f2937;
+        }
+
+        .image-dropzone.has-file {
+            border-style: solid;
+        }
+
+        .dropzone-message {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .image-preview {
+            margin-top: 15px;
+            max-width: 100%;
+            max-height: 220px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+            object-fit: contain;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .hidden-input {
+            display: none;
         }
 
         .button-group {
@@ -346,6 +422,34 @@
             transform: translateY(-1px);
         }
 
+        .binary-warning {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            font-size: 13px;
+        }
+
+        .binary-warning button {
+            margin-left: 10px;
+            padding: 6px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #ef4444;
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .binary-warning button:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
         .status {
             padding: 12px;
             border-radius: 8px;
@@ -480,12 +584,50 @@
             <!-- Compress Section -->
             <div id="compressSection">
                 <div class="section">
-                    <label class="section-title" for="compressInput">Input Text to Compress</label>
-                    <textarea id="compressInput" rows="10" placeholder="Enter text to compress..." oninput="updateCharCount('compress')">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                    <div class="section-title">Select Input Type</div>
+                    <div class="input-mode-selector" id="inputModeSelector">
+                        <label class="radio-option active" data-mode="text">
+                            <input type="radio" name="inputMode" value="text" checked onchange="setInputMode('text')">
+                            <span>Text</span>
+                        </label>
+                        <label class="radio-option" data-mode="image">
+                            <input type="radio" name="inputMode" value="image" onchange="setInputMode('image')">
+                            <span>Image</span>
+                        </label>
+                        <label class="radio-option" data-mode="generic">
+                            <input type="radio" name="inputMode" value="generic" onchange="setInputMode('generic')">
+                            <span>Generic File</span>
+                        </label>
+                    </div>
+
+                    <div id="textInputContainer">
+                        <label class="section-title" for="compressInput">Input Text to Compress</label>
+                        <textarea id="compressInput" rows="10" placeholder="Enter text to compress..." oninput="updateCharCount('compress')">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</textarea>
-                    <div class="char-count" id="compressCharCount">0 characters (0 bytes)</div>
-                    
+                        <div class="char-count" id="compressCharCount">0 characters (0 bytes)</div>
+                    </div>
+
+                    <div id="imageInputContainer" class="hidden">
+                        <label class="section-title">Image to Compress</label>
+                        <div class="image-dropzone" id="imageDropzone" onclick="triggerImageFileDialog()" ondragover="handleImageDragOver(event)" ondragleave="handleImageDragLeave(event)" ondrop="handleImageDrop(event)">
+                            <input type="file" id="imageFileInput" class="hidden-input" accept="image/*" onchange="handleImageFileChange(event)">
+                            <div class="dropzone-message">
+                                <strong>Click to upload</strong> or drag and drop an image file.<br>
+                                You can also paste an image while this option is selected.
+                            </div>
+                        </div>
+                        <div class="file-info" id="imageInfo">No image selected</div>
+                        <img id="imagePreview" class="image-preview hidden" alt="Selected image preview">
+                    </div>
+
+                    <div id="genericInputContainer" class="hidden">
+                        <label class="section-title">File to Compress</label>
+                        <button type="button" class="btn-secondary" onclick="triggerGenericFileDialog()">Choose File</button>
+                        <input type="file" id="genericFileInput" class="hidden-input" onchange="handleGenericFileChange(event)">
+                        <div class="file-info" id="genericFileInfo">No file selected</div>
+                    </div>
+
                     <div class="button-group">
                         <button class="btn-primary" onclick="compressData()">
                             <span>⚡</span> Compress with Both Algorithms
@@ -605,6 +747,14 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                     <label class="section-title" for="decompressInput">Base64 Compressed Data</label>
                     <textarea id="decompressInput" rows="8" placeholder="Paste Base64 encoded compressed data here..." oninput="updateCharCount('decompress')"></textarea>
                     <div class="char-count" id="decompressCharCount">0 characters</div>
+
+                    <div class="button-group">
+                        <button class="btn-secondary" type="button" onclick="triggerDecompressFileDialog()">
+                            <span>📄</span> Load Base64 File
+                        </button>
+                        <input type="file" id="decompressFileInput" class="hidden-input" accept=".txt,.text,.b64,.base64,text/plain" onchange="handleDecompressFileChange(event)">
+                    </div>
+                    <div class="file-info" id="decompressFileInfo">No file selected</div>
                     
                     <div class="button-group">
                         <button class="btn-primary" onclick="decompressData('zstd')">
@@ -644,11 +794,14 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                             </div>
                         </div>
                         <div class="output-area">
-                            <div class="output-label">Decompressed Text:</div>
+                            <div class="output-label" id="decompressOutputLabel">Decompressed Text:</div>
                             <textarea id="decompress-output" rows="10" style="width: 100%; margin-top: 10px;" readonly></textarea>
-                            <div class="action-buttons">
-                                <button class="action-btn" onclick="copyDecompressed()">📋 Copy Text</button>
-                                <button class="action-btn" onclick="downloadDecompressed()">💾 Download Text</button>
+                            <div class="binary-warning hidden" id="decompressBinaryWarning">
+                                Output contains binary data. Copying is disabled; use download to save the file locally.
+                            </div>
+                            <div class="action-buttons" id="decompressActions">
+                                <button class="action-btn" onclick="copyDecompressed()" id="copyDecompressedBtn">📋 Copy Text</button>
+                                <button class="action-btn" onclick="downloadDecompressed()" id="downloadDecompressedBtn">💾 Download</button>
                             </div>
                         </div>
                     </div>
@@ -685,6 +838,453 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             zstd: null,
             lz4: null
         };
+
+        const fileInputCache = {
+            image: {
+                buffer: null,
+                fileName: '',
+                mimeType: '',
+                size: 0,
+                previewUrl: null
+            },
+            generic: {
+                buffer: null,
+                fileName: '',
+                mimeType: '',
+                size: 0
+            }
+        };
+
+        const inputState = {
+            mode: 'text',
+            loading: false,
+            text: ''
+        };
+
+        const decompressedState = {
+            buffer: null,
+            text: '',
+            isText: true,
+            algorithm: '',
+            mimeType: 'text/plain;charset=utf-8',
+            previewText: '',
+            forceShown: false
+        };
+
+        function updateModeRadioStyles(mode) {
+            document.querySelectorAll('#inputModeSelector .radio-option').forEach(option => {
+                const optionMode = option.dataset.mode;
+                const isActive = optionMode === mode;
+                option.classList.toggle('active', isActive);
+                const radio = option.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = isActive;
+                }
+            });
+        }
+
+        function toggleInputContainers(mode) {
+            const textContainer = document.getElementById('textInputContainer');
+            const imageContainer = document.getElementById('imageInputContainer');
+            const genericContainer = document.getElementById('genericInputContainer');
+
+            if (textContainer) textContainer.classList.toggle('hidden', mode !== 'text');
+            if (imageContainer) imageContainer.classList.toggle('hidden', mode !== 'image');
+            if (genericContainer) genericContainer.classList.toggle('hidden', mode !== 'generic');
+        }
+
+        function setInputModeInternal(mode) {
+            if (!mode) return;
+            if (!['text', 'image', 'generic'].includes(mode)) {
+                mode = 'text';
+            }
+
+            inputState.mode = mode;
+            updateModeRadioStyles(mode);
+            toggleInputContainers(mode);
+
+            if (mode === 'text') {
+                updateCharCount('compress');
+            }
+        }
+
+        window.setInputMode = setInputModeInternal;
+
+        function setDropzoneDragState(isActive) {
+            const dropzone = document.getElementById('imageDropzone');
+            if (dropzone) {
+                dropzone.classList.toggle('drag-over', Boolean(isActive));
+            }
+        }
+
+        function markImageHasFile(hasFile) {
+            const dropzone = document.getElementById('imageDropzone');
+            if (dropzone) {
+                dropzone.classList.toggle('has-file', Boolean(hasFile));
+            }
+        }
+
+        function describeFile(fileName, size, mimeType) {
+            const parts = [];
+            if (fileName) parts.push(fileName);
+            if (Number.isFinite(size) && size >= 0) parts.push(formatBytes(size));
+            if (mimeType) parts.push(mimeType);
+            return parts.join(' • ') || 'No file selected';
+        }
+
+        function inferFileName(file, fallbackPrefix) {
+            if (file.name) {
+                return file.name;
+            }
+            const extension = (file.type && file.type.includes('/')) ? file.type.split('/')[1] : 'bin';
+            const normalized = extension.replace(/[+]/g, '-');
+            return `${fallbackPrefix || 'file'}-${Date.now()}.${normalized || 'bin'}`;
+        }
+
+        function isSupportedImage(file) {
+            if (!file) return false;
+            if (file.type && file.type.startsWith('image/')) return true;
+            const lower = (file.name || '').toLowerCase();
+            return /(\.png|\.jpe?g|\.webp|\.gif|\.bmp|\.svg|\.avif)$/.test(lower);
+        }
+
+        function resetImageSelection() {
+            setDropzoneDragState(false);
+            markImageHasFile(false);
+
+            const preview = document.getElementById('imagePreview');
+            if (preview) {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+
+            const info = document.getElementById('imageInfo');
+            if (info) {
+                info.textContent = 'No image selected';
+            }
+
+            const input = document.getElementById('imageFileInput');
+            if (input) {
+                input.value = '';
+            }
+
+            if (fileInputCache.image.previewUrl) {
+                URL.revokeObjectURL(fileInputCache.image.previewUrl);
+            }
+
+            fileInputCache.image.buffer = null;
+            fileInputCache.image.fileName = '';
+            fileInputCache.image.mimeType = '';
+            fileInputCache.image.size = 0;
+            fileInputCache.image.previewUrl = null;
+        }
+
+        function resetGenericSelection() {
+            const info = document.getElementById('genericFileInfo');
+            if (info) {
+                info.textContent = 'No file selected';
+            }
+
+            const input = document.getElementById('genericFileInput');
+            if (input) {
+                input.value = '';
+            }
+
+            fileInputCache.generic.buffer = null;
+            fileInputCache.generic.fileName = '';
+            fileInputCache.generic.mimeType = '';
+            fileInputCache.generic.size = 0;
+        }
+
+        async function loadImageFile(file) {
+            if (!file) return;
+
+            if (inputState.loading) {
+                showStatus('A file is still loading. Please wait a moment.', 'info', 'compressStatus');
+                return;
+            }
+
+            if (!isSupportedImage(file)) {
+                showStatus('Unsupported image type. Try PNG, JPEG, WEBP, GIF, SVG, or BMP.', 'error', 'compressStatus');
+                return;
+            }
+
+            inputState.loading = true;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const buffer = new Uint8Array(arrayBuffer);
+                const fileName = inferFileName(file, 'image');
+                const mimeType = file.type || 'image/*';
+
+                if (fileInputCache.image.previewUrl) {
+                    URL.revokeObjectURL(fileInputCache.image.previewUrl);
+                }
+
+                const previewUrl = URL.createObjectURL(file);
+
+                fileInputCache.image.buffer = buffer;
+                fileInputCache.image.fileName = fileName;
+                fileInputCache.image.mimeType = mimeType;
+                fileInputCache.image.size = buffer.byteLength;
+                fileInputCache.image.previewUrl = previewUrl;
+
+                const previewEl = document.getElementById('imagePreview');
+                if (previewEl) {
+                    previewEl.src = previewUrl;
+                    previewEl.classList.remove('hidden');
+                }
+
+                const infoEl = document.getElementById('imageInfo');
+                if (infoEl) {
+                    infoEl.textContent = describeFile(fileName, buffer.byteLength, mimeType);
+                }
+
+                markImageHasFile(true);
+            } catch (error) {
+                showStatus(`Unable to load image: ${error.message}`, 'error', 'compressStatus');
+                console.error('Image load error:', error);
+            } finally {
+                inputState.loading = false;
+                const imageInput = document.getElementById('imageFileInput');
+                if (imageInput) {
+                    imageInput.value = '';
+                }
+            }
+        }
+
+        async function loadGenericFile(file) {
+            if (!file) return;
+
+            if (inputState.loading) {
+                showStatus('A file is still loading. Please wait a moment.', 'info', 'compressStatus');
+                return;
+            }
+
+            inputState.loading = true;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const buffer = new Uint8Array(arrayBuffer);
+                const fileName = inferFileName(file, 'file');
+                const mimeType = file.type || 'application/octet-stream';
+
+                fileInputCache.generic.buffer = buffer;
+                fileInputCache.generic.fileName = fileName;
+                fileInputCache.generic.mimeType = mimeType;
+                fileInputCache.generic.size = buffer.byteLength;
+
+                const infoEl = document.getElementById('genericFileInfo');
+                if (infoEl) {
+                    infoEl.textContent = describeFile(fileName, buffer.byteLength, mimeType);
+                }
+            } catch (error) {
+                showStatus(`Unable to load file: ${error.message}`, 'error', 'compressStatus');
+                console.error('File load error:', error);
+            } finally {
+                inputState.loading = false;
+                const genericInput = document.getElementById('genericFileInput');
+                if (genericInput) {
+                    genericInput.value = '';
+                }
+            }
+        }
+
+        function handleClipboardPaste(event) {
+            if (inputState.mode !== 'image') {
+                return;
+            }
+
+            const items = event.clipboardData && event.clipboardData.items;
+            if (!items) return;
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.type && item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        event.preventDefault();
+                        loadImageFile(file);
+                        break;
+                    }
+                }
+            }
+        }
+
+        window.triggerImageFileDialog = function() {
+            if (inputState.loading) {
+                showStatus('A file is still loading. Please wait a moment.', 'info', 'compressStatus');
+                return;
+            }
+
+            const input = document.getElementById('imageFileInput');
+            if (input) {
+                input.click();
+            }
+        };
+
+        window.handleImageFileChange = function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (file) {
+                loadImageFile(file);
+            }
+        };
+
+        window.handleImageDragOver = function(event) {
+            event.preventDefault();
+            if (inputState.mode !== 'image') return;
+            setDropzoneDragState(true);
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'copy';
+            }
+        };
+
+        window.handleImageDragLeave = function(event) {
+            event.preventDefault();
+            const related = event.relatedTarget;
+            if (related && event.currentTarget && event.currentTarget.contains(related)) {
+                return;
+            }
+            setDropzoneDragState(false);
+        };
+
+        window.handleImageDrop = function(event) {
+            event.preventDefault();
+            setDropzoneDragState(false);
+            if (inputState.mode !== 'image') return;
+
+            const files = event.dataTransfer && event.dataTransfer.files;
+            if (files && files.length) {
+                loadImageFile(files[0]);
+            }
+        };
+
+        window.triggerGenericFileDialog = function() {
+            if (inputState.loading) {
+                showStatus('A file is still loading. Please wait a moment.', 'info', 'compressStatus');
+                return;
+            }
+
+            const input = document.getElementById('genericFileInput');
+            if (input) {
+                input.click();
+            }
+        };
+
+        window.handleGenericFileChange = function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (file) {
+                loadGenericFile(file);
+            }
+        };
+
+        window.triggerDecompressFileDialog = function() {
+            const input = document.getElementById('decompressFileInput');
+            if (input) {
+                input.click();
+            }
+        };
+
+        window.handleDecompressFileChange = async function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const inputEl = document.getElementById('decompressInput');
+                if (inputEl) {
+                    inputEl.value = text;
+                }
+                const infoEl = document.getElementById('decompressFileInfo');
+                if (infoEl) {
+                    infoEl.textContent = describeFile(file.name, text.length, file.type || 'text/plain');
+                }
+                updateCharCount('decompress');
+            } catch (error) {
+                showStatus(`Unable to read file: ${error.message}`, 'error', 'decompressStatus');
+                console.error('Decompress file load error:', error);
+            } finally {
+                if (event.target) {
+                    event.target.value = '';
+                }
+            }
+        };
+
+        function resetDecompressDisplay() {
+            const textArea = document.getElementById('decompress-output');
+            if (textArea) {
+                textArea.value = '';
+                textArea.classList.remove('hidden');
+            }
+
+            const warning = document.getElementById('decompressBinaryWarning');
+            if (warning) {
+                warning.classList.add('hidden');
+            }
+
+            const label = document.getElementById('decompressOutputLabel');
+            if (label) {
+                label.textContent = 'Decompressed Text:';
+            }
+
+            const copyBtn = document.getElementById('copyDecompressedBtn');
+            if (copyBtn) {
+                copyBtn.style.display = 'flex';
+            }
+
+            decompressedState.buffer = null;
+            decompressedState.text = '';
+            decompressedState.isText = true;
+            decompressedState.algorithm = '';
+            decompressedState.mimeType = 'text/plain;charset=utf-8';
+            decompressedState.previewText = '';
+            decompressedState.forceShown = false;
+        }
+
+        function analyzeDecompressedBuffer(buffer) {
+            if (!buffer || !buffer.byteLength) {
+                return { isText: true, text: '', preview: '' };
+            }
+
+            const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+            const sampleSize = Math.min(bytes.length, 4096);
+            let zeroCount = 0;
+            let controlCount = 0;
+            for (let i = 0; i < sampleSize; i++) {
+                const value = bytes[i];
+                if (value === 0) zeroCount++;
+                if (value < 0x09 || (value > 0x0D && value < 0x20)) controlCount++;
+            }
+
+            try {
+                const decoder = new TextDecoder('utf-8', { fatal: false });
+                const text = decoder.decode(bytes);
+                const sampleText = text.slice(0, 4096);
+
+                const hasNulls = sampleText.includes('\u0000');
+                const hasReplacement = sampleText.includes('\uFFFD');
+
+                let nonPrintable = 0;
+                for (let i = 0; i < sampleText.length; i++) {
+                    const code = sampleText.charCodeAt(i);
+                    if (code === 9 || code === 10 || code === 13) continue;
+                    if (code < 32) nonPrintable++;
+                }
+
+                const controlRatio = sampleText.length ? (nonPrintable / sampleText.length) : 0;
+                const byteControlRatio = sampleSize ? (controlCount / sampleSize) : 0;
+                const isLikelyText = zeroCount === 0 && !hasNulls && !hasReplacement && controlRatio <= 0.05 && byteControlRatio <= 0.05;
+
+                return {
+                    isText: isLikelyText,
+                    text: isLikelyText ? text : '',
+                    preview: text
+                };
+            } catch (error) {
+                console.warn('Text decode warning:', error);
+                return { isText: false, text: '', preview: '' };
+            }
+        }
 
         function setOutputText(id, text) {
             const outputEl = document.getElementById(`${id}-output`);
@@ -747,13 +1347,25 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             }
         }
 
-        function generateInputSignature(text, originalSize) {
+        function generateInputSignature({ mode, text = '', buffer = null, originalSize = 0, fileName = '', mimeType = '' }) {
             let hash = 0;
-            for (let i = 0; i < text.length; i++) {
-                hash = ((hash << 5) - hash) + text.charCodeAt(i);
-                hash |= 0;
+
+            if (mode === 'text') {
+                for (let i = 0; i < text.length; i++) {
+                    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+                    hash |= 0;
+                }
+            } else if (buffer) {
+                const length = buffer.length;
+                const step = length > 500000 ? Math.ceil(length / 500000) : 1;
+                for (let i = 0; i < length; i += step) {
+                    hash = ((hash << 5) - hash) + buffer[i];
+                    hash |= 0;
+                }
             }
-            return `${originalSize}-${text.length}-${(hash >>> 0).toString(16)}`;
+
+            const meta = `${mode}|${fileName}|${mimeType}|${originalSize}|${mode === 'text' ? text.length : 0}`;
+            return `${meta}|${(hash >>> 0).toString(16)}`;
         }
 
         function runCompression({ zstd = false, lz4: runLz4 = false } = {}) {
@@ -766,30 +1378,89 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 return;
             }
 
-            const inputText = document.getElementById('compressInput').value;
-
-            if (!inputText) {
-                showStatus('Please enter some text to compress.', 'error', 'compressStatus');
-                return;
-            }
-
             if ((zstd && !zstdReady) || (runLz4 && !lz4Ready)) {
                 showStatus('Compression libraries not ready yet.', 'error', 'compressStatus');
                 return;
             }
 
-            try {
+            if (inputState.mode !== 'text' && inputState.loading) {
+                showStatus('File is still loading. Please wait a moment.', 'info', 'compressStatus');
+                return;
+            }
+
+            const mode = inputState.mode;
+            let inputBuffer;
+            let originalSize = 0;
+            let signature;
+            let contextDescription = '';
+
+            if (mode === 'text') {
+                const inputEl = document.getElementById('compressInput');
+                const inputText = inputEl ? inputEl.value : '';
+                inputState.text = inputText;
+
+                if (!inputText) {
+                    showStatus('Please enter some text to compress.', 'error', 'compressStatus');
+                    return;
+                }
+
                 const encoder = new TextEncoder();
-                const inputBuffer = encoder.encode(inputText);
-                const originalSize = inputBuffer.byteLength;
+                inputBuffer = encoder.encode(inputText);
+                originalSize = inputBuffer.byteLength;
 
                 if (!originalSize) {
                     showStatus('Please enter some text to compress.', 'error', 'compressStatus');
                     return;
                 }
 
+                signature = generateInputSignature({
+                    mode: 'text',
+                    text: inputText,
+                    buffer: inputBuffer,
+                    originalSize
+                });
+
+                contextDescription = `Text input (${inputText.length.toLocaleString()} characters)`;
+            } else {
+                const cache = fileInputCache[mode];
+                if (!cache || !cache.buffer || !cache.size) {
+                    const message = mode === 'image' ? 'Please provide an image to compress.' : 'Please choose a file to compress.';
+                    showStatus(message, 'error', 'compressStatus');
+                    return;
+                }
+
+                inputBuffer = cache.buffer;
+                originalSize = cache.size;
+                signature = generateInputSignature({
+                    mode,
+                    buffer: cache.buffer,
+                    originalSize,
+                    fileName: cache.fileName,
+                    mimeType: cache.mimeType
+                });
+
+                const descriptor = mode === 'image' ? 'Image file' : 'Generic file';
+                contextDescription = cache.fileName ? `${descriptor} (${cache.fileName})` : descriptor;
+            }
+
+            if (!originalSize) {
+                showStatus('No data to compress.', 'error', 'compressStatus');
+                return;
+            }
+
+            try {
                 compressedDataStore.originalSize = originalSize;
-                const signature = generateInputSignature(inputText, originalSize);
+
+                const previousZstd = algorithmMetrics.zstd;
+                const previousLz4 = algorithmMetrics.lz4;
+
+                const label = requestedAlgorithms.join(' & ');
+
+                console.log('📊 Compression Results:');
+                console.log('═══════════════════════════════════');
+                console.log(`Source: ${contextDescription}`);
+                console.log(`Original: ${formatBytes(originalSize)} (${originalSize} bytes)`);
+                console.log('');
 
                 if (zstd) {
                     const zstdStart = performance.now();
@@ -818,11 +1489,18 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                         signature
                     };
 
-                    console.log('📊 ZSTD Compression');
-                    console.log(`  Original: ${formatBytes(originalSize)} (${originalSize} bytes)`);
+                    console.log('ZSTD:');
                     console.log(`  Raw: ${formatBytes(zstdSize)} (${zstdSize} bytes) - ${zstdRatio.toFixed(2)}%`);
                     console.log(`  Base64: ${zstdBase64Size} chars - ${zstdBase64Ratio.toFixed(2)}% vs original`);
                     console.log(`  Time: ${zstdTime.toFixed(2)}ms`);
+                    console.log('');
+                } else {
+                    if (previousZstd && previousZstd.signature === signature) {
+                        algorithmMetrics.zstd = previousZstd;
+                    } else {
+                        resetAlgorithmPanel('zstd');
+                        algorithmMetrics.zstd = null;
+                    }
                 }
 
                 if (runLz4) {
@@ -852,17 +1530,22 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                         signature
                     };
 
-                    console.log('📊 LZ4 Compression');
-                    console.log(`  Original: ${formatBytes(originalSize)} (${originalSize} bytes)`);
+                    console.log('LZ4:');
                     console.log(`  Raw: ${formatBytes(lz4Size)} (${lz4Size} bytes) - ${lz4Ratio.toFixed(2)}%`);
                     console.log(`  Base64: ${lz4Base64Size} chars - ${lz4Base64Ratio.toFixed(2)}% vs original`);
                     console.log(`  Time: ${lz4Time.toFixed(2)}ms`);
+                } else {
+                    if (previousLz4 && previousLz4.signature === signature) {
+                        algorithmMetrics.lz4 = previousLz4;
+                    } else {
+                        resetAlgorithmPanel('lz4');
+                        algorithmMetrics.lz4 = null;
+                    }
                 }
 
                 document.getElementById('compressResults').style.display = 'grid';
                 updateComparisonSummary();
 
-                const label = requestedAlgorithms.join(' & ');
                 showStatus(`✅ Compression completed for ${label}!`, 'success', 'compressStatus');
 
             } catch (error) {
@@ -924,12 +1607,21 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
         window.updateCharCount = function(mode) {
             const input = document.getElementById(mode + 'Input');
+            if (!input) return;
+
             const countEl = document.getElementById(mode + 'CharCount');
             const text = input.value;
-            const chars = text.length;
-            const bytes = new TextEncoder().encode(text).byteLength;
-            
+
             if (mode === 'compress') {
+                inputState.text = text;
+            }
+
+            if (!countEl) return;
+
+            const chars = text.length;
+
+            if (mode === 'compress') {
+                const bytes = new TextEncoder().encode(text).byteLength;
                 countEl.textContent = `${chars.toLocaleString()} characters (${formatBytes(bytes)})`;
             } else {
                 countEl.textContent = `${chars.toLocaleString()} characters`;
@@ -998,9 +1690,11 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                     document.getElementById('decompress-algo-title').textContent = '⚡ LZ4 Decompression Result';
                 }
 
-                const decoder = new TextDecoder();
-                const decompressedText = decoder.decode(decompressedBuffer);
                 const decompressedSize = decompressedBuffer.byteLength;
+                const analysis = analyzeDecompressedBuffer(decompressedBuffer);
+                const isTextOutput = analysis.isText;
+                const decompressedText = analysis.text;
+                const previewText = analysis.preview || '';
 
                 // Update display
                 document.getElementById('decompress-compressed-size').innerHTML = 
@@ -1010,7 +1704,47 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 document.getElementById('decompress-original-size').innerHTML = 
                     `${formatBytes(decompressedSize)} <span class="metric-badge">${decompressedSize.toLocaleString()} bytes</span>`;
                 document.getElementById('decompress-time').textContent = `${decompressTime.toFixed(2)}ms`;
-                document.getElementById('decompress-output').value = decompressedText;
+                const outputLabel = document.getElementById('decompressOutputLabel');
+                const outputEl = document.getElementById('decompress-output');
+                const warningEl = document.getElementById('decompressBinaryWarning');
+                const copyBtn = document.getElementById('copyDecompressedBtn');
+
+                if (outputLabel) {
+                    outputLabel.textContent = isTextOutput ? 'Decompressed Text:' : 'Decompressed Output:';
+                }
+
+                if (isTextOutput) {
+                    if (outputEl) {
+                        outputEl.value = decompressedText;
+                        outputEl.classList.remove('hidden');
+                    }
+                    if (warningEl) {
+                        warningEl.classList.add('hidden');
+                    }
+                    if (copyBtn) {
+                        copyBtn.style.display = 'flex';
+                    }
+                } else {
+                    if (outputEl) {
+                        outputEl.value = '';
+                        outputEl.classList.add('hidden');
+                    }
+                    if (warningEl) {
+                        warningEl.innerHTML = `Output contains binary data (${formatBytes(decompressedSize)}). Copying is disabled; use download to save the file locally.<button type="button" onclick="showBinaryOutput()">Show Anyway</button>`;
+                        warningEl.classList.remove('hidden');
+                    }
+                    if (copyBtn) {
+                        copyBtn.style.display = 'none';
+                    }
+                }
+
+                decompressedState.buffer = decompressedBuffer.slice();
+                decompressedState.text = isTextOutput ? decompressedText : '';
+                decompressedState.isText = isTextOutput;
+                decompressedState.algorithm = algorithm;
+                decompressedState.mimeType = isTextOutput ? 'text/plain;charset=utf-8' : 'application/octet-stream';
+                decompressedState.previewText = previewText;
+                decompressedState.forceShown = false;
 
                 // Show results
                 document.getElementById('decompressResults').style.display = 'grid';
@@ -1025,27 +1759,94 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 console.log(`Decompressed: ${formatBytes(decompressedSize)} (${decompressedSize} bytes)`);
                 console.log(`Time: ${decompressTime.toFixed(2)}ms`);
                 console.log(`Expansion ratio: ${((decompressedSize / compressedSize) * 100).toFixed(2)}%`);
+                console.log(`Output type: ${decompressedState.isText ? 'Text' : 'Binary'}`);
                 
             } catch (error) {
                 showStatus(`❌ Decompression failed: ${error.message}`, 'error', 'decompressStatus');
                 console.error('❌ Decompression error:', error);
+                resetDecompressDisplay();
             }
         };
 
+        window.showBinaryOutput = function() {
+            if (!decompressedState.buffer) {
+                showStatus('No decompressed data available to show.', 'info', 'decompressStatus');
+                return;
+            }
+
+            const outputEl = document.getElementById('decompress-output');
+            if (outputEl) {
+                const textToShow = decompressedState.previewText || '';
+                outputEl.value = textToShow;
+                outputEl.classList.remove('hidden');
+            }
+
+            const warningEl = document.getElementById('decompressBinaryWarning');
+            if (warningEl) {
+                warningEl.classList.add('hidden');
+            }
+
+            const copyBtn = document.getElementById('copyDecompressedBtn');
+            if (copyBtn) {
+                copyBtn.style.display = 'flex';
+            }
+
+            decompressedState.forceShown = true;
+
+            showStatus('Displaying binary output as text. Characters may be garbled.', 'info', 'decompressStatus');
+        };
+
         window.clearCompress = function() {
-            document.getElementById('compressInput').value = '';
+            const textInput = document.getElementById('compressInput');
+            if (textInput) {
+                textInput.value = '';
+            }
+
+            inputState.text = '';
+            inputState.loading = false;
+
+            resetImageSelection();
+            resetGenericSelection();
+
             ['zstd', 'lz4'].forEach(resetAlgorithmPanel);
             compressedDataStore.originalSize = 0;
-            document.getElementById('compressStatus').style.display = 'none';
+
+            const statusEl = document.getElementById('compressStatus');
+            if (statusEl) {
+                statusEl.style.display = 'none';
+            }
+
             updateComparisonSummary();
-            updateCharCount('compress');
+            setInputModeInternal('text');
         };
 
         window.clearDecompress = function() {
-            document.getElementById('decompressInput').value = '';
-            document.getElementById('decompressResults').style.display = 'none';
-            document.getElementById('decompressStatus').style.display = 'none';
-            document.getElementById('decompress-output').value = '';
+            const inputEl = document.getElementById('decompressInput');
+            if (inputEl) {
+                inputEl.value = '';
+            }
+
+            const resultsEl = document.getElementById('decompressResults');
+            if (resultsEl) {
+                resultsEl.style.display = 'none';
+            }
+
+            const statusEl = document.getElementById('decompressStatus');
+            if (statusEl) {
+                statusEl.style.display = 'none';
+            }
+
+            const fileInfoEl = document.getElementById('decompressFileInfo');
+            if (fileInfoEl) {
+                fileInfoEl.textContent = 'No file selected';
+            }
+
+            const fileInputEl = document.getElementById('decompressFileInput');
+            if (fileInputEl) {
+                fileInputEl.value = '';
+            }
+
+            resetDecompressDisplay();
             updateCharCount('decompress');
         };
 
@@ -1092,34 +1893,96 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         };
 
         window.copyDecompressed = function() {
-            const outputEl = document.getElementById('decompress-output');
-            outputEl.select();
-            document.execCommand('copy');
-            showStatus('📋 Copied to clipboard!', 'success', 'decompressStatus');
+            if (!decompressedState.isText && !decompressedState.forceShown) {
+                showStatus('Binary output cannot be copied. Please download the file instead.', 'info', 'decompressStatus');
+                return;
+            }
+
+            const text = decompressedState.text;
+            const fallbackText = decompressedState.forceShown ? (decompressedState.previewText || '') : '';
+            const content = decompressedState.forceShown ? fallbackText : text;
+
+            if (!content) {
+                showStatus('Nothing to copy yet.', 'info', 'decompressStatus');
+                return;
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(content).then(() => {
+                    showStatus('📋 Copied to clipboard!', 'success', 'decompressStatus');
+                }).catch(error => {
+                    console.error('Copy failed:', error);
+                    showStatus('Copy failed. Please try again.', 'error', 'decompressStatus');
+                });
+            } else {
+                try {
+                    const textarea = document.createElement('textarea');
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    textarea.value = content;
+                    document.body.appendChild(textarea);
+                    textarea.focus();
+                    textarea.select();
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    if (successful) {
+                        showStatus('📋 Copied to clipboard!', 'success', 'decompressStatus');
+                    } else {
+                        showStatus('Copy failed. Please try again.', 'error', 'decompressStatus');
+                    }
+                } catch (error) {
+                    console.error('Copy fallback failed:', error);
+                    showStatus('Copy failed. Please try again.', 'error', 'decompressStatus');
+                }
+            }
         };
 
         window.downloadDecompressed = function() {
-            const text = document.getElementById('decompress-output').value;
-            const blob = new Blob([text], { type: 'text/plain' });
+            if (!decompressedState.buffer) {
+                showStatus('No decompressed data available yet.', 'info', 'decompressStatus');
+                return;
+            }
+
+            const treatAsText = decompressedState.isText || decompressedState.forceShown;
+            const extension = treatAsText ? 'txt' : 'bin';
+            const suggestedName = `${decompressedState.algorithm || 'decompressed'}-${Date.now()}.${extension}`;
+            const blob = treatAsText
+                ? new Blob([decompressedState.forceShown ? (decompressedState.previewText || '') : decompressedState.text], { type: decompressedState.mimeType })
+                : new Blob([decompressedState.buffer], { type: decompressedState.mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `decompressed-${Date.now()}.txt`;
+            a.download = suggestedName;
             a.click();
             URL.revokeObjectURL(url);
         };
 
         function arrayBufferToBase64(buffer) {
-            let binary = '';
-            const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
+            let bytes;
+            if (buffer instanceof Uint8Array) {
+                bytes = buffer;
+            } else if (buffer instanceof ArrayBuffer) {
+                bytes = new Uint8Array(buffer);
+            } else if (ArrayBuffer.isView(buffer)) {
+                bytes = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+            } else {
+                throw new Error('Unsupported buffer type for Base64 conversion.');
             }
-            return btoa(binary);
+
+            if (bytes.length === 0) return '';
+
+            const chunkSize = 0x8000;
+            const chunks = [];
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                const chunk = bytes.subarray(i, i + chunkSize);
+                chunks.push(String.fromCharCode.apply(null, chunk));
+            }
+            return btoa(chunks.join(''));
         }
 
         function base64ToUint8Array(base64) {
-            const binary = atob(base64);
+            const sanitized = base64.replace(/\s+/g, '');
+            const binary = atob(sanitized);
             const len = binary.length;
             const bytes = new Uint8Array(len);
             for (let i = 0; i < len; i++) {
@@ -1143,6 +2006,9 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             statusEl.style.display = 'block';
             setTimeout(() => statusEl.style.display = 'none', 5000);
         }
+
+        document.addEventListener('paste', handleClipboardPaste);
+        setInputModeInternal('text');
 
         // Initialize on load
         initializeLibraries();
