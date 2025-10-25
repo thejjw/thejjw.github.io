@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zstandard Compression Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: #667eea;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-value.highlight {
+            color: #667eea;
+        }
+
+        .output-box {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            color: #333;
+        }
+
+        .output-box:empty::before {
+            content: 'Compressed data will appear here...';
+            color: #999;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .loading {
+            display: block;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗜️ Zstandard Compression Demo</h1>
+        <p class="subtitle">Compress and decompress text using @bokuweb/zstd-wasm v0.0.27</p>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Initializing WASM module...</span>
+        </div>
+
+        <div id="mainContent" style="display: none;">
+            <!-- Input Section -->
+            <div class="section">
+                <label class="section-title" for="inputText">Input Text</label>
+                <textarea 
+                    id="inputText" 
+                    rows="8" 
+                    placeholder="Enter text to compress..."
+                >Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</textarea>
+                
+                <div class="button-group">
+                    <button class="btn-primary" id="compressBtn" onclick="compressText()">
+                        <span>🗜️</span> Compress
+                    </button>
+                    <button class="btn-secondary" id="decompressBtn" onclick="decompressText()" disabled>
+                        <span>📦</span> Decompress
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="section">
+                <div class="section-title">Compression Statistics</div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Original Size</span>
+                        <span class="stat-value" id="originalSize">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Compressed Size</span>
+                        <span class="stat-value" id="compressedSize">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Compression Ratio</span>
+                        <span class="stat-value highlight" id="compressionRatio">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="section">
+                <label class="section-title" for="outputText">Base64 Encoded Output</label>
+                <div class="output-box" id="outputText"></div>
+                
+                <div class="button-group">
+                    <button class="btn-success" id="copyBtn" onclick="copyToClipboard()" disabled>
+                        <span>📋</span> Copy to Clipboard
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div class="status" id="statusMsg"></div>
+
+            <!-- Footer -->
+            <div class="footer">
+                Using @bokuweb/zstd-wasm v0.0.27 • All files loaded locally
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import from custom bundle with fixed paths
+        import { init, compress, decompress } from './lib/zstd-wasm@0.0.27/zstd.bundle.js';
+
+        let compressedData = null;
+
+        async function initializeZstd() {
+            const loadingEl = document.getElementById('loading');
+            const mainContent = document.getElementById('mainContent');
+            
+            try {
+                loadingEl.style.display = 'block';
+                await init('./lib/zstd-wasm@0.0.27/zstd.wasm');
+                
+                loadingEl.style.display = 'none';
+                mainContent.style.display = 'block';
+                
+                showStatus('WASM module initialized successfully!', 'success');
+                console.log('✅ ZSTD WASM v0.0.27 ready');
+            } catch (error) {
+                loadingEl.style.display = 'none';
+                mainContent.style.display = 'block';
+                showStatus(`Failed to initialize WASM module: ${error.message}`, 'error');
+                console.error('❌ Initialization error:', error);
+            }
+        }
+
+        window.compressText = function() {
+            const inputText = document.getElementById('inputText').value;
+            
+            if (!inputText) {
+                showStatus('Please enter some text to compress.', 'error');
+                return;
+            }
+
+            try {
+                const encoder = new TextEncoder();
+                const inputBuffer = encoder.encode(inputText);
+                const originalSize = inputBuffer.byteLength;
+                
+                compressedData = compress(inputBuffer, 10);
+                const compressedSize = compressedData.byteLength;
+                const base64Output = arrayBufferToBase64(compressedData);
+                const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(2);
+                
+                document.getElementById('outputText').textContent = base64Output;
+                document.getElementById('originalSize').textContent = formatBytes(originalSize);
+                document.getElementById('compressedSize').textContent = formatBytes(compressedSize);
+                document.getElementById('compressionRatio').textContent = `${ratio}%`;
+                
+                document.getElementById('copyBtn').disabled = false;
+                document.getElementById('decompressBtn').disabled = false;
+                
+                showStatus(`✅ Compression successful! Reduced size by ${ratio}%`, 'success');
+                
+                console.log('📊 Compression Stats:');
+                console.log(`  Original: ${formatBytes(originalSize)} (${originalSize} bytes)`);
+                console.log(`  Compressed: ${formatBytes(compressedSize)} (${compressedSize} bytes)`);
+                console.log(`  Saved: ${ratio}%`);
+            } catch (error) {
+                showStatus(`❌ Compression failed: ${error.message}`, 'error');
+                console.error('❌ Compression error:', error);
+            }
+        };
+
+        window.decompressText = function() {
+            if (!compressedData) {
+                showStatus('No compressed data available. Please compress some text first.', 'error');
+                return;
+            }
+
+            try {
+                const decompressedBuffer = decompress(compressedData);
+                const decoder = new TextDecoder();
+                const decompressedText = decoder.decode(decompressedBuffer);
+                const originalText = document.getElementById('inputText').value;
+                
+                if (decompressedText === originalText) {
+                    showStatus('✅ Decompression successful! Data integrity verified.', 'success');
+                    console.log('✅ Data Integrity Check PASSED');
+                } else {
+                    showStatus('⚠️ Decompressed text does not match original!', 'error');
+                    console.error('❌ Data Integrity Check FAILED');
+                }
+            } catch (error) {
+                showStatus(`❌ Decompression failed: ${error.message}`, 'error');
+                console.error('❌ Decompression error:', error);
+            }
+        };
+
+        window.copyToClipboard = async function() {
+            const outputText = document.getElementById('outputText').textContent;
+            
+            if (!outputText) {
+                showStatus('No output to copy.', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(outputText);
+                showStatus('📋 Copied to clipboard!', 'success');
+            } catch (error) {
+                const textArea = document.createElement('textarea');
+                textArea.value = outputText;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showStatus('📋 Copied to clipboard!', 'success');
+            }
+        };
+
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMsg');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+            setTimeout(() => statusEl.style.display = 'none', 5000);
+        }
+
+        initializeZstd();
+    </script>
+</body>
+</html>

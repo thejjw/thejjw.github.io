@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LZ4 Compression Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            font-family: monospace;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .output {
+            background-color: #f4f4f4;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        .stats {
+            color: #666;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>LZ4 Block Compression Example</h1>
+    
+    <div>
+        <label for="inputText">Enter text to compress:</label>
+        <textarea id="inputText" placeholder="Type or paste your text here...">Hello, World! This is a test of the LZ4 compression algorithm. The more text you add, the better the compression ratio will be. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</textarea>
+    </div>
+
+    <div>
+        <button id="compressBtn" onclick="compressData()">Compress to LZ4</button>
+        <button onclick="clearOutput()">Clear Output</button>
+    </div>
+
+    <div id="stats" class="stats"></div>
+    <div id="error" class="error"></div>
+
+    <div>
+        <h3>Base64 Encoded LZ4 Compressed Data:</h3>
+        <div id="output" class="output"></div>
+    </div>
+
+    <div>
+        <button id="copyBtn" onclick="copyToClipboard()" style="display:none;">Copy to Clipboard</button>
+        <button id="decompressBtn" onclick="decompressData()" style="display:none;">Decompress</button>
+    </div>
+
+    <div>
+        <h3>Decompressed Data:</h3>
+        <div id="decompressed" class="output"></div>
+    </div>
+
+    <!-- Load the LZ4 WASM wrapper -->
+    <script src="lz4-block-codec-wasm.js"></script>
+    
+    <script>
+        let lz4 = new LZ4BlockWASM();
+        let compressedData = null;
+        let originalSize = 0;
+
+        // Initialize the LZ4 WASM module
+        async function initLZ4() {
+            try {
+                await lz4.init();
+                console.log('LZ4 WASM initialized successfully');
+                document.getElementById('compressBtn').disabled = false;
+            } catch (error) {
+                document.getElementById('error').textContent = 
+                    'Failed to initialize LZ4 WASM. Make sure lz4-block-codec.wasm is in the same directory.';
+                document.getElementById('compressBtn').disabled = true;
+                console.error('LZ4 initialization error:', error);
+            }
+        }
+
+        function compressData() {
+            const inputText = document.getElementById('inputText').value;
+            const errorDiv = document.getElementById('error');
+            const outputDiv = document.getElementById('output');
+            const statsDiv = document.getElementById('stats');
+            
+            errorDiv.textContent = '';
+            
+            if (!inputText) {
+                errorDiv.textContent = 'Please enter some text to compress.';
+                return;
+            }
+
+            try {
+                // Convert text to Uint8Array
+                const encoder = new TextEncoder();
+                const inputBytes = encoder.encode(inputText);
+                originalSize = inputBytes.length;
+
+                // Compress using LZ4 (outputOffset = 0 means no header offset)
+                const compressed = lz4.encodeBlock(inputBytes, 0);
+                
+                if (!compressed) {
+                    errorDiv.textContent = 'Compression failed.';
+                    return;
+                }
+
+                compressedData = compressed;
+
+                // Convert to base64
+                const base64 = uint8ArrayToBase64(compressed);
+                
+                // Display results
+                outputDiv.textContent = base64;
+                
+                const compressionRatio = ((1 - compressed.length / originalSize) * 100).toFixed(2);
+                statsDiv.innerHTML = `
+                    <strong>Compression Stats:</strong><br>
+                    Original size: ${originalSize} bytes<br>
+                    Compressed size: ${compressed.length} bytes<br>
+                    Compression ratio: ${compressionRatio}%<br>
+                    Base64 length: ${base64.length} characters
+                `;
+
+                // Show action buttons
+                document.getElementById('copyBtn').style.display = 'inline-block';
+                document.getElementById('decompressBtn').style.display = 'inline-block';
+                document.getElementById('decompressed').textContent = '';
+
+            } catch (error) {
+                errorDiv.textContent = 'Error during compression: ' + error.message;
+                console.error('Compression error:', error);
+            }
+        }
+
+        function decompressData() {
+            const errorDiv = document.getElementById('error');
+            const decompressedDiv = document.getElementById('decompressed');
+            
+            errorDiv.textContent = '';
+            
+            if (!compressedData) {
+                errorDiv.textContent = 'No compressed data available. Please compress some data first.';
+                return;
+            }
+
+            try {
+                // Decompress (inputOffset = 0, outputSize = original size)
+                const decompressed = lz4.decodeBlock(compressedData, 0, originalSize);
+                
+                if (!decompressed) {
+                    errorDiv.textContent = 'Decompression failed.';
+                    return;
+                }
+
+                // Convert back to text
+                const decoder = new TextDecoder();
+                const decompressedText = decoder.decode(decompressed);
+                
+                decompressedDiv.textContent = decompressedText;
+
+            } catch (error) {
+                errorDiv.textContent = 'Error during decompression: ' + error.message;
+                console.error('Decompression error:', error);
+            }
+        }
+
+        function uint8ArrayToBase64(uint8Array) {
+            let binary = '';
+            const len = uint8Array.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(uint8Array[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToUint8Array(base64) {
+            const binary = atob(base64);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(output).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                document.getElementById('error').textContent = 'Failed to copy to clipboard: ' + err.message;
+            });
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = '';
+            document.getElementById('decompressed').textContent = '';
+            document.getElementById('stats').textContent = '';
+            document.getElementById('error').textContent = '';
+            document.getElementById('copyBtn').style.display = 'none';
+            document.getElementById('decompressBtn').style.display = 'none';
+            compressedData = null;
+        }
+
+        // Initialize LZ4 when page loads
+        window.addEventListener('load', initLZ4);
+    </script>
+</body>
+</html>
