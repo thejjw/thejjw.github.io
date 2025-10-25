@@ -684,7 +684,8 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                             </div>
                             <div class="action-buttons">
                                 <button class="action-btn" onclick="copyOutput('zstd-compress')">📋 Copy</button>
-                                <button class="action-btn" onclick="downloadOutput('zstd-compress')">💾 Download</button>
+                                <button class="action-btn" onclick="downloadOutput('zstd-compress', 'base64')">💾 Download Base64 (.txt)</button>
+                                <button class="action-btn" onclick="downloadOutput('zstd-compress', 'raw')">💾 Download Raw (.zst)</button>
                             </div>
                         </div>
                     </div>
@@ -722,7 +723,8 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                             </div>
                             <div class="action-buttons">
                                 <button class="action-btn" onclick="copyOutput('lz4-compress')">📋 Copy</button>
-                                <button class="action-btn" onclick="downloadOutput('lz4-compress')">💾 Download</button>
+                                <button class="action-btn" onclick="downloadOutput('lz4-compress', 'base64')">💾 Download Base64 (.txt)</button>
+                                <button class="action-btn" onclick="downloadOutput('lz4-compress', 'raw')">💾 Download Raw (.lz4)</button>
                             </div>
                         </div>
                     </div>
@@ -2036,9 +2038,37 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             });
         };
 
-        window.downloadOutput = function(id) {
+        window.downloadOutput = function(id, format = 'base64') {
             const outputEl = document.getElementById(`${id}-output`);
             if (!outputEl) return;
+
+            const algorithm = id.split('-')[0];
+
+            if (format === 'raw') {
+                const compressedBytes = compressedDataStore[algorithm];
+
+                if (!compressedBytes || !compressedBytes.byteLength) {
+                    showStatus('Raw output not available. Run compression again.', 'error', 'compressStatus');
+                    return;
+                }
+
+                const buffer = compressedBytes.buffer.slice(
+                    compressedBytes.byteOffset,
+                    compressedBytes.byteOffset + compressedBytes.byteLength
+                );
+
+                const extension = algorithm === 'zstd' ? 'zst' : algorithm === 'lz4' ? 'lz4' : 'bin';
+                const blob = new Blob([buffer], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `compressed-${algorithm}-${Date.now()}.${extension}`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                showStatus(`Downloaded ${algorithm.toUpperCase()} raw output as .${extension}.`, 'success', 'compressStatus');
+                return;
+            }
 
             const text = outputEl.dataset.value || '';
             if (!text) {
@@ -2046,29 +2076,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                 return;
             }
 
-            const algorithm = id.split('-')[0];
-            const compressedBytes = compressedDataStore[algorithm];
-
-            if (!compressedBytes || !compressedBytes.byteLength) {
-                showStatus('Binary output not available. Run compression again.', 'error', 'compressStatus');
-                return;
-            }
-
-            const buffer = compressedBytes.buffer.slice(
-                compressedBytes.byteOffset,
-                compressedBytes.byteOffset + compressedBytes.byteLength
-            );
-
-            const extension = algorithm === 'zstd' ? 'zst' : algorithm === 'lz4' ? 'lz4' : 'bin';
-            const blob = new Blob([buffer], { type: 'application/octet-stream' });
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `compressed-${algorithm}-${Date.now()}.${extension}`;
+            a.download = `compressed-${algorithm}-${Date.now()}.txt`;
             a.click();
             URL.revokeObjectURL(url);
 
-            showStatus(`Downloaded ${algorithm.toUpperCase()} output as .${extension}.`, 'success', 'compressStatus');
+            showStatus(`Downloaded ${algorithm.toUpperCase()} Base64 text.`, 'success', 'compressStatus');
         };
 
         window.copyDecompressed = function() {
