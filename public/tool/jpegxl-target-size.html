@@ -523,6 +523,11 @@
                     <div class="metric-value" id="differenceValue">-</div>
                     <div class="metric-subvalue" id="percentValue"></div>
                 </div>
+                <div class="metric-card">
+                    <div class="metric-label">Encoding Time</div>
+                    <div class="metric-value" id="timeValue">-</div>
+                    <div class="metric-subvalue" id="timeDetails"></div>
+                </div>
             </div>
             <div class="result-actions">
                 <button class="btn-primary" type="button" id="downloadBtn" disabled>💾 Download Result</button>
@@ -591,6 +596,8 @@
         const dimensionValueEl = document.getElementById('dimensionValue');
         const differenceValueEl = document.getElementById('differenceValue');
         const percentValueEl = document.getElementById('percentValue');
+        const timeValueEl = document.getElementById('timeValue');
+        const timeDetailsEl = document.getElementById('timeDetails');
         const downloadBtn = document.getElementById('downloadBtn');
         const copyBase64Btn = document.getElementById('copyBase64Btn');
 
@@ -631,6 +638,20 @@
             if (Number.isFinite(bytes)) parts.push(formatBytes(bytes));
             if (file?.type) parts.push(file.type);
             return parts.join(' • ');
+        }
+
+        function formatDuration(ms) {
+            if (!Number.isFinite(ms) || ms < 0) return '-';
+            if (ms >= 60000) {
+                return `${(ms / 60000).toFixed(2)} min`;
+            }
+            if (ms >= 1000) {
+                return `${(ms / 1000).toFixed(2)} s`;
+            }
+            if (ms >= 1) {
+                return `${ms.toFixed(1)} ms`;
+            }
+            return `${ms.toFixed(2)} ms`;
         }
 
         function renderFileInfo(loadingDimensions = false) {
@@ -685,6 +706,8 @@
             outputPlaceholder.textContent = 'Encode to inspect result';
             downloadBtn.textContent = '💾 Download Result';
             copyBase64Btn.textContent = '📋 Copy Result as Base64';
+            timeValueEl.textContent = '-';
+            timeDetailsEl.textContent = '';
         }
 
         function clearInput() {
@@ -989,6 +1012,7 @@
             let bestMatch = null;
             let closestMatch = null;
             let attempts = 0;
+            const encodingStart = performance.now();
 
             try {
                 for (const dim of dimensions) {
@@ -1052,7 +1076,8 @@
                     return;
                 }
 
-                presentResult(finalResult, targetBytes, attempts, Boolean(bestMatch), modeLabel);
+                const elapsedMs = performance.now() - encodingStart;
+                presentResult(finalResult, targetBytes, attempts, Boolean(bestMatch), modeLabel, elapsedMs);
                 showStatus(bestMatch ? 'Target met successfully.' : 'Target not met exactly, showing closest result.', bestMatch ? 'success' : 'info');
             } finally {
                 setEncodingState(false);
@@ -1073,7 +1098,7 @@
             };
         }
 
-        function presentResult(result, targetBytes, attempts, metTarget, modeLabel) {
+        function presentResult(result, targetBytes, attempts, metTarget, modeLabel, elapsedMs) {
             if (state.outputUrl) {
                 URL.revokeObjectURL(state.outputUrl);
             }
@@ -1107,6 +1132,19 @@
             dimensionValueEl.textContent = `Max dimension ${result.dimension}px`;
             differenceValueEl.textContent = `${diff >= 0 ? '+' : ''}${formatBytes(Math.abs(diff))}`;
             percentValueEl.textContent = `${diff >= 0 ? '+' : ''}${percentDiff.toFixed(2)}% vs target`;
+            timeValueEl.textContent = formatDuration(elapsedMs);
+            if (attempts) {
+                const avgMs = elapsedMs / attempts;
+                if (avgMs >= 1000) {
+                    timeDetailsEl.textContent = `${(avgMs / 1000).toFixed(2)} s average per attempt`;
+                } else if (avgMs >= 1) {
+                    timeDetailsEl.textContent = `${avgMs.toFixed(1)} ms average per attempt`;
+                } else {
+                    timeDetailsEl.textContent = `${avgMs.toFixed(2)} ms average per attempt`;
+                }
+            } else {
+                timeDetailsEl.textContent = '';
+            }
 
             resultsCard.style.display = 'block';
         }
