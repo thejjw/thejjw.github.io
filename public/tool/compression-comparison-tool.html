@@ -195,6 +195,44 @@
             border-bottom: 2px solid #e0e0e0;
         }
 
+        .panel-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+            gap: 8px;
+        }
+
+        .panel-action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .panel-action-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .panel-action-btn.zstd {
+            background: #667eea;
+        }
+
+        .panel-action-btn.zstd:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        .panel-action-btn.lz4 {
+            background: #10b981;
+        }
+
+        .panel-action-btn.lz4:hover:not(:disabled) {
+            background: #059669;
+        }
+
         .metrics-grid {
             display: grid;
             gap: 12px;
@@ -460,10 +498,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
                 <div class="status" id="compressStatus"></div>
 
-                <div class="results-grid" id="compressResults" style="display: none;">
+                <div class="results-grid" id="compressResults">
                     <!-- ZSTD Results -->
                     <div class="algorithm-panel">
                         <h3>🗜️ Zstandard (ZSTD)</h3>
+                        <div class="panel-actions">
+                            <button class="panel-action-btn zstd" onclick="compressZstd()" id="zstdCompressBtn">
+                                Compress with ZSTD
+                            </button>
+                        </div>
                         <div class="metrics-grid">
                             <div class="metric-row">
                                 <span class="metric-label">Original Size</span>
@@ -497,6 +540,11 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
                     <!-- LZ4 Results -->
                     <div class="algorithm-panel">
                         <h3>⚡ LZ4</h3>
+                        <div class="panel-actions">
+                            <button class="panel-action-btn lz4" onclick="compressLz4()" id="lz4CompressBtn">
+                                Compress with LZ4
+                            </button>
+                        </div>
                         <div class="metrics-grid">
                             <div class="metric-row">
                                 <span class="metric-label">Original Size</span>
@@ -633,6 +681,196 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
             originalSize: 0
         };
 
+        const algorithmMetrics = {
+            zstd: null,
+            lz4: null
+        };
+
+        function setOutputText(id, text) {
+            const outputEl = document.getElementById(`${id}-output`);
+            if (!outputEl) return;
+
+            let indicator = document.getElementById(`${id}-copied`);
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'copy-indicator';
+                indicator.id = `${id}-copied`;
+                indicator.textContent = 'Copied!';
+            } else if (indicator.parentElement) {
+                indicator.parentElement.removeChild(indicator);
+            }
+
+            outputEl.textContent = text || '';
+            outputEl.dataset.value = text || '';
+            outputEl.appendChild(indicator);
+        }
+
+        function resetAlgorithmPanel(algorithm) {
+            const prefix = `${algorithm}-compress`;
+            ['original', 'raw', 'base64'].forEach(metric => {
+                const metricEl = document.getElementById(`${prefix}-${metric}`);
+                if (metricEl) {
+                    metricEl.innerHTML = '-';
+                }
+            });
+
+            const timeEl = document.getElementById(`${prefix}-time`);
+            if (timeEl) {
+                timeEl.textContent = '-';
+            }
+
+            setOutputText(prefix, '');
+            if (compressedDataStore.hasOwnProperty(algorithm)) {
+                compressedDataStore[algorithm] = null;
+            }
+            algorithmMetrics[algorithm] = null;
+        }
+
+        function updateComparisonSummary() {
+            const summaryEl = document.getElementById('compressSummary');
+
+            if (algorithmMetrics.zstd && algorithmMetrics.lz4 && algorithmMetrics.zstd.signature === algorithmMetrics.lz4.signature) {
+                const { ratio: zstdRatio, time: zstdTime } = algorithmMetrics.zstd;
+                const { ratio: lz4Ratio, time: lz4Time } = algorithmMetrics.lz4;
+
+                summaryEl.style.display = 'block';
+                document.getElementById('zstd-efficiency').textContent = `${zstdRatio.toFixed(2)}%`;
+                document.getElementById('lz4-efficiency').textContent = `${lz4Ratio.toFixed(2)}%`;
+                document.getElementById('better-ratio').textContent = zstdRatio > lz4Ratio ? 'ZSTD' : (lz4Ratio > zstdRatio ? 'LZ4' : 'TIE');
+                document.getElementById('faster-algo').textContent = zstdTime < lz4Time ? 'ZSTD' : (lz4Time < zstdTime ? 'LZ4' : 'TIE');
+            } else {
+                summaryEl.style.display = 'none';
+                document.getElementById('zstd-efficiency').textContent = '-';
+                document.getElementById('lz4-efficiency').textContent = '-';
+                document.getElementById('better-ratio').textContent = '-';
+                document.getElementById('faster-algo').textContent = '-';
+            }
+        }
+
+        function generateInputSignature(text, originalSize) {
+            let hash = 0;
+            for (let i = 0; i < text.length; i++) {
+                hash = ((hash << 5) - hash) + text.charCodeAt(i);
+                hash |= 0;
+            }
+            return `${originalSize}-${text.length}-${(hash >>> 0).toString(16)}`;
+        }
+
+        function runCompression({ zstd = false, lz4: runLz4 = false } = {}) {
+            const requestedAlgorithms = [];
+            if (zstd) requestedAlgorithms.push('ZSTD');
+            if (runLz4) requestedAlgorithms.push('LZ4');
+
+            if (!requestedAlgorithms.length) {
+                showStatus('Select at least one compression algorithm.', 'error', 'compressStatus');
+                return;
+            }
+
+            const inputText = document.getElementById('compressInput').value;
+
+            if (!inputText) {
+                showStatus('Please enter some text to compress.', 'error', 'compressStatus');
+                return;
+            }
+
+            if ((zstd && !zstdReady) || (runLz4 && !lz4Ready)) {
+                showStatus('Compression libraries not ready yet.', 'error', 'compressStatus');
+                return;
+            }
+
+            try {
+                const encoder = new TextEncoder();
+                const inputBuffer = encoder.encode(inputText);
+                const originalSize = inputBuffer.byteLength;
+
+                if (!originalSize) {
+                    showStatus('Please enter some text to compress.', 'error', 'compressStatus');
+                    return;
+                }
+
+                compressedDataStore.originalSize = originalSize;
+                const signature = generateInputSignature(inputText, originalSize);
+
+                if (zstd) {
+                    const zstdStart = performance.now();
+                    const zstdCompressed = compress(inputBuffer, 10);
+                    const zstdTime = performance.now() - zstdStart;
+                    compressedDataStore.zstd = zstdCompressed;
+
+                    const zstdSize = zstdCompressed.byteLength;
+                    const zstdBase64 = arrayBufferToBase64(zstdCompressed);
+                    const zstdBase64Size = zstdBase64.length;
+                    const zstdRatio = originalSize ? ((1 - zstdSize / originalSize) * 100) : 0;
+                    const zstdBase64Ratio = originalSize ? ((1 - zstdBase64Size / originalSize) * 100) : 0;
+
+                    document.getElementById('zstd-compress-original').innerHTML = 
+                        `${formatBytes(originalSize)} <span class="metric-badge">${originalSize.toLocaleString()} bytes</span>`;
+                    document.getElementById('zstd-compress-raw').innerHTML = 
+                        `${formatBytes(zstdSize)} <span class="metric-badge ${zstdRatio > 0 ? 'positive' : 'negative'}">${zstdRatio > 0 ? '-' : '+'}${Math.abs(zstdRatio).toFixed(2)}%</span>`;
+                    document.getElementById('zstd-compress-base64').innerHTML = 
+                        `${zstdBase64Size.toLocaleString()} chars <span class="metric-badge ${zstdBase64Ratio > 0 ? 'positive' : 'negative'}">${zstdBase64Ratio > 0 ? '-' : '+'}${Math.abs(zstdBase64Ratio).toFixed(2)}%</span>`;
+                    document.getElementById('zstd-compress-time').textContent = `${zstdTime.toFixed(2)}ms`;
+                    setOutputText('zstd-compress', zstdBase64);
+
+                    algorithmMetrics.zstd = {
+                        ratio: zstdRatio,
+                        time: zstdTime,
+                        signature
+                    };
+
+                    console.log('📊 ZSTD Compression');
+                    console.log(`  Original: ${formatBytes(originalSize)} (${originalSize} bytes)`);
+                    console.log(`  Raw: ${formatBytes(zstdSize)} (${zstdSize} bytes) - ${zstdRatio.toFixed(2)}%`);
+                    console.log(`  Base64: ${zstdBase64Size} chars - ${zstdBase64Ratio.toFixed(2)}% vs original`);
+                    console.log(`  Time: ${zstdTime.toFixed(2)}ms`);
+                }
+
+                if (runLz4) {
+                    const lz4Start = performance.now();
+                    const lz4Compressed = lz4.encodeBlock(inputBuffer, 0);
+                    const lz4Time = performance.now() - lz4Start;
+                    compressedDataStore.lz4 = lz4Compressed;
+
+                    const lz4Size = lz4Compressed.byteLength;
+                    const lz4Base64 = arrayBufferToBase64(lz4Compressed);
+                    const lz4Base64Size = lz4Base64.length;
+                    const lz4Ratio = originalSize ? ((1 - lz4Size / originalSize) * 100) : 0;
+                    const lz4Base64Ratio = originalSize ? ((1 - lz4Base64Size / originalSize) * 100) : 0;
+
+                    document.getElementById('lz4-compress-original').innerHTML = 
+                        `${formatBytes(originalSize)} <span class="metric-badge">${originalSize.toLocaleString()} bytes</span>`;
+                    document.getElementById('lz4-compress-raw').innerHTML = 
+                        `${formatBytes(lz4Size)} <span class="metric-badge ${lz4Ratio > 0 ? 'positive' : 'negative'}">${lz4Ratio > 0 ? '-' : '+'}${Math.abs(lz4Ratio).toFixed(2)}%</span>`;
+                    document.getElementById('lz4-compress-base64').innerHTML = 
+                        `${lz4Base64Size.toLocaleString()} chars <span class="metric-badge ${lz4Base64Ratio > 0 ? 'positive' : 'negative'}">${lz4Base64Ratio > 0 ? '-' : '+'}${Math.abs(lz4Base64Ratio).toFixed(2)}%</span>`;
+                    document.getElementById('lz4-compress-time').textContent = `${lz4Time.toFixed(2)}ms`;
+                    setOutputText('lz4-compress', lz4Base64);
+
+                    algorithmMetrics.lz4 = {
+                        ratio: lz4Ratio,
+                        time: lz4Time,
+                        signature
+                    };
+
+                    console.log('📊 LZ4 Compression');
+                    console.log(`  Original: ${formatBytes(originalSize)} (${originalSize} bytes)`);
+                    console.log(`  Raw: ${formatBytes(lz4Size)} (${lz4Size} bytes) - ${lz4Ratio.toFixed(2)}%`);
+                    console.log(`  Base64: ${lz4Base64Size} chars - ${lz4Base64Ratio.toFixed(2)}% vs original`);
+                    console.log(`  Time: ${lz4Time.toFixed(2)}ms`);
+                }
+
+                document.getElementById('compressResults').style.display = 'grid';
+                updateComparisonSummary();
+
+                const label = requestedAlgorithms.join(' & ');
+                showStatus(`✅ Compression completed for ${label}!`, 'success', 'compressStatus');
+
+            } catch (error) {
+                showStatus(`❌ Compression failed: ${error.message}`, 'error', 'compressStatus');
+                console.error('❌ Compression error:', error);
+            }
+        }
+
         // Initialize both compression libraries
         async function initializeLibraries() {
             const loadingEl = document.getElementById('loading');
@@ -699,99 +937,15 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
         };
 
         window.compressData = function() {
-            const inputText = document.getElementById('compressInput').value;
-            
-            if (!inputText) {
-                showStatus('Please enter some text to compress.', 'error', 'compressStatus');
-                return;
-            }
+            runCompression({ zstd: true, lz4: true });
+        };
 
-            if (!zstdReady || !lz4Ready) {
-                showStatus('Compression libraries not ready yet.', 'error', 'compressStatus');
-                return;
-            }
+        window.compressZstd = function() {
+            runCompression({ zstd: true });
+        };
 
-            try {
-                const encoder = new TextEncoder();
-                const inputBuffer = encoder.encode(inputText);
-                const originalSize = inputBuffer.byteLength;
-                compressedDataStore.originalSize = originalSize;
-
-                // ZSTD Compression
-                const zstdStart = performance.now();
-                const zstdCompressed = compress(inputBuffer, 10);
-                const zstdTime = performance.now() - zstdStart;
-                compressedDataStore.zstd = zstdCompressed;
-                
-                const zstdSize = zstdCompressed.byteLength;
-                const zstdBase64 = arrayBufferToBase64(zstdCompressed);
-                const zstdBase64Size = zstdBase64.length;
-                const zstdRatio = ((1 - zstdSize / originalSize) * 100);
-                const zstdBase64Ratio = ((1 - zstdBase64Size / originalSize) * 100);
-
-                // Update ZSTD display
-                document.getElementById('zstd-compress-original').innerHTML = 
-                    `${formatBytes(originalSize)} <span class="metric-badge">${originalSize.toLocaleString()} bytes</span>`;
-                document.getElementById('zstd-compress-raw').innerHTML = 
-                    `${formatBytes(zstdSize)} <span class="metric-badge ${zstdRatio > 0 ? 'positive' : 'negative'}">${zstdRatio > 0 ? '-' : '+'}${Math.abs(zstdRatio).toFixed(2)}%</span>`;
-                document.getElementById('zstd-compress-base64').innerHTML = 
-                    `${zstdBase64Size.toLocaleString()} chars <span class="metric-badge ${zstdBase64Ratio > 0 ? 'positive' : 'negative'}">${zstdBase64Ratio > 0 ? '-' : '+'}${Math.abs(zstdBase64Ratio).toFixed(2)}%</span>`;
-                document.getElementById('zstd-compress-time').textContent = `${zstdTime.toFixed(2)}ms`;
-                document.getElementById('zstd-compress-output').textContent = zstdBase64;
-
-                // LZ4 Compression
-                const lz4Start = performance.now();
-                const lz4Compressed = lz4.encodeBlock(inputBuffer, 0);
-                const lz4Time = performance.now() - lz4Start;
-                compressedDataStore.lz4 = lz4Compressed;
-                
-                const lz4Size = lz4Compressed.byteLength;
-                const lz4Base64 = arrayBufferToBase64(lz4Compressed);
-                const lz4Base64Size = lz4Base64.length;
-                const lz4Ratio = ((1 - lz4Size / originalSize) * 100);
-                const lz4Base64Ratio = ((1 - lz4Base64Size / originalSize) * 100);
-
-                // Update LZ4 display
-                document.getElementById('lz4-compress-original').innerHTML = 
-                    `${formatBytes(originalSize)} <span class="metric-badge">${originalSize.toLocaleString()} bytes</span>`;
-                document.getElementById('lz4-compress-raw').innerHTML = 
-                    `${formatBytes(lz4Size)} <span class="metric-badge ${lz4Ratio > 0 ? 'positive' : 'negative'}">${lz4Ratio > 0 ? '-' : '+'}${Math.abs(lz4Ratio).toFixed(2)}%</span>`;
-                document.getElementById('lz4-compress-base64').innerHTML = 
-                    `${lz4Base64Size.toLocaleString()} chars <span class="metric-badge ${lz4Base64Ratio > 0 ? 'positive' : 'negative'}">${lz4Base64Ratio > 0 ? '-' : '+'}${Math.abs(lz4Base64Ratio).toFixed(2)}%</span>`;
-                document.getElementById('lz4-compress-time').textContent = `${lz4Time.toFixed(2)}ms`;
-                document.getElementById('lz4-compress-output').textContent = lz4Base64;
-
-                // Update summary
-                document.getElementById('zstd-efficiency').textContent = `${zstdRatio.toFixed(2)}%`;
-                document.getElementById('lz4-efficiency').textContent = `${lz4Ratio.toFixed(2)}%`;
-                document.getElementById('better-ratio').textContent = zstdRatio > lz4Ratio ? 'ZSTD' : (lz4Ratio > zstdRatio ? 'LZ4' : 'TIE');
-                document.getElementById('faster-algo').textContent = zstdTime < lz4Time ? 'ZSTD' : (lz4Time < zstdTime ? 'LZ4' : 'TIE');
-
-                // Show results
-                document.getElementById('compressResults').style.display = 'grid';
-                document.getElementById('compressSummary').style.display = 'block';
-                
-                showStatus('✅ Compression completed successfully!', 'success', 'compressStatus');
-
-                // Log detailed stats
-                console.log('📊 Compression Results:');
-                console.log('═══════════════════════════════════');
-                console.log(`Original: ${formatBytes(originalSize)} (${originalSize} bytes)`);
-                console.log('');
-                console.log('ZSTD:');
-                console.log(`  Raw: ${formatBytes(zstdSize)} (${zstdSize} bytes) - ${zstdRatio.toFixed(2)}% reduction`);
-                console.log(`  Base64: ${zstdBase64Size} chars - ${zstdBase64Ratio.toFixed(2)}% vs original`);
-                console.log(`  Time: ${zstdTime.toFixed(2)}ms`);
-                console.log('');
-                console.log('LZ4:');
-                console.log(`  Raw: ${formatBytes(lz4Size)} (${lz4Size} bytes) - ${lz4Ratio.toFixed(2)}% reduction`);
-                console.log(`  Base64: ${lz4Base64Size} chars - ${lz4Base64Ratio.toFixed(2)}% vs original`);
-                console.log(`  Time: ${lz4Time.toFixed(2)}ms`);
-                
-            } catch (error) {
-                showStatus(`❌ Compression failed: ${error.message}`, 'error', 'compressStatus');
-                console.error('❌ Compression error:', error);
-            }
+        window.compressLz4 = function() {
+            runCompression({ lz4: true });
         };
 
         window.decompressData = function(algorithm) {
@@ -880,9 +1034,10 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
         window.clearCompress = function() {
             document.getElementById('compressInput').value = '';
-            document.getElementById('compressResults').style.display = 'none';
-            document.getElementById('compressSummary').style.display = 'none';
+            ['zstd', 'lz4'].forEach(resetAlgorithmPanel);
+            compressedDataStore.originalSize = 0;
             document.getElementById('compressStatus').style.display = 'none';
+            updateComparisonSummary();
             updateCharCount('compress');
         };
 
@@ -896,22 +1051,37 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
 
         window.copyOutput = function(id) {
             const outputEl = document.getElementById(`${id}-output`);
-            const text = outputEl.textContent;
-            
+            if (!outputEl) return;
+
+            const text = outputEl.dataset.value || '';
+            if (!text) {
+                showStatus('Nothing to copy yet.', 'info', 'compressStatus');
+                return;
+            }
+
             navigator.clipboard.writeText(text).then(() => {
                 const indicator = document.getElementById(`${id}-copied`);
-                indicator.style.display = 'block';
-                setTimeout(() => indicator.style.display = 'none', 2000);
+                if (indicator) {
+                    indicator.style.display = 'block';
+                    setTimeout(() => indicator.style.display = 'none', 2000);
+                }
             }).catch(err => {
                 console.error('Copy failed:', err);
+                showStatus('Copy failed. Please try again.', 'error', 'compressStatus');
             });
         };
 
         window.downloadOutput = function(id) {
             const outputEl = document.getElementById(`${id}-output`);
-            const text = outputEl.textContent;
+            if (!outputEl) return;
+
+            const text = outputEl.dataset.value || '';
+            if (!text) {
+                showStatus('Nothing to download yet.', 'info', 'compressStatus');
+                return;
+            }
+
             const algorithm = id.split('-')[0];
-            
             const blob = new Blob([text], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
