@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPEG XL Converter</title>
+    <style>
+        :root {
+            color-scheme: light;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #eef2ff 0%, #f8fafc 40%, #ffffff 100%);
+            color: #1f2937;
+            min-height: 100vh;
+            padding: 40px 20px 80px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 18px;
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            box-shadow: 0 25px 60px rgba(79, 70, 229, 0.18);
+            padding: 32px 36px 44px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: #4338ca;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 span {
+            font-size: 30px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #4b5563;
+            margin-bottom: 26px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .mode-option {
+            position: relative;
+            border: 2px solid #c7d2fe;
+            border-radius: 14px;
+            padding: 18px 20px;
+            flex: 1 1 280px;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(238,242,255,0.9) 100%);
+        }
+
+        .mode-option:hover {
+            transform: translateY(-2px);
+            border-color: #818cf8;
+            box-shadow: 0 12px 20px rgba(99, 102, 241, 0.12);
+        }
+
+        .mode-option.active {
+            border-color: #4c51bf;
+            box-shadow: 0 16px 26px rgba(79, 70, 229, 0.18);
+        }
+
+        .mode-option input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .mode-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #312e81;
+            margin-bottom: 6px;
+        }
+
+        .mode-description {
+            font-size: 13px;
+            color: #4b5563;
+            line-height: 1.45;
+        }
+
+        .input-card {
+            border: 1px dashed #c7d2fe;
+            border-radius: 16px;
+            padding: 26px;
+            background: rgba(238, 242, 255, 0.4);
+            transition: border-color 0.2s ease, background 0.2s ease;
+            margin-bottom: 22px;
+        }
+
+        .input-card.drag-over {
+            border-color: #4c51bf;
+            background: rgba(129, 140, 248, 0.12);
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .input-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #312e81;
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            box-shadow: 0 12px 18px rgba(99, 102, 241, 0.28);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 26px rgba(79, 70, 229, 0.36);
+        }
+
+        .btn-secondary {
+            background: rgba(99, 102, 241, 0.18);
+            color: #312e81;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.18);
+            color: #b91c1c;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px rgba(239, 68, 68, 0.2);
+        }
+
+        .drop-message {
+            border: 1px solid rgba(129, 140, 248, 0.35);
+            border-radius: 14px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.65);
+            text-align: center;
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .hidden-input {
+            display: none;
+        }
+
+        .file-info {
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .file-chip {
+            background: rgba(99, 102, 241, 0.16);
+            color: #312e81;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            align-items: start;
+            margin-bottom: 24px;
+        }
+
+        .preview-card {
+            background: white;
+            border-radius: 14px;
+            border: 1px solid rgba(129, 140, 248, 0.16);
+            padding: 14px;
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+        }
+
+        .preview-card h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #312e81;
+            margin-bottom: 10px;
+        }
+
+        .preview-card img {
+            width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+            border-radius: 12px;
+            background: rgba(226, 232, 240, 0.5);
+        }
+
+        .preview-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 220px;
+            border-radius: 12px;
+            background: rgba(226, 232, 240, 0.6);
+            color: #64748b;
+            font-size: 13px;
+            border: 1px dashed rgba(148, 163, 184, 0.6);
+        }
+
+        .quality-control {
+            margin-bottom: 22px;
+            padding: 16px 18px;
+            border-radius: 14px;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            display: none;
+        }
+
+        .quality-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #312e81;
+        }
+
+        .quality-slider {
+            width: 100%;
+        }
+
+        .status {
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.info {
+            background: rgba(129, 140, 248, 0.16);
+            color: #312e81;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.16);
+            color: #065f46;
+            border: 1px solid rgba(34, 197, 94, 0.25);
+        }
+
+        .status.error {
+            background: rgba(248, 113, 113, 0.16);
+            color: #7f1d1d;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .results-card {
+            margin-top: 30px;
+            padding: 22px;
+            border-radius: 16px;
+            background: white;
+            border: 1px solid rgba(129, 140, 248, 0.16);
+            box-shadow: 0 18px 40px rgba(99, 102, 241, 0.18);
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 18px;
+        }
+
+        .results-header h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #312e81;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 14px;
+        }
+
+        .metric-card {
+            background: rgba(238, 242, 255, 0.55);
+            border: 1px solid rgba(129, 140, 248, 0.25);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #312e81;
+        }
+
+        .metric-subvalue {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 6px;
+        }
+
+        .result-actions {
+            margin-top: 22px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .footer {
+            margin-top: 38px;
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        @media (max-width: 720px) {
+            .container {
+                padding: 24px 20px 36px;
+            }
+
+            .input-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .input-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span>🧪</span> JPEG XL Converter</h1>
+        <p class="subtitle">Convert existing images to efficient JPEG XL format directly in your browser. All processing stays on-device.</p>
+
+        <div class="mode-selector" id="modeSelector">
+            <label class="mode-option active" data-mode="transcode">
+                <input type="radio" name="mode" value="transcode" checked>
+                <div class="mode-title">JPEG Transcoding (Lossless)</div>
+                <div class="mode-description">Perfect for existing JPEG files. Converts to JPEG XL without quality loss while often shrinking file size.</div>
+            </label>
+            <label class="mode-option" data-mode="encode">
+                <input type="radio" name="mode" value="encode">
+                <div class="mode-title">Image Encoding (Adjustable Quality)</div>
+                <div class="mode-description">Encode any bitmap image (PNG, WebP, GIF, etc.) into JPEG XL with configurable quality from 0 to 100.</div>
+            </label>
+        </div>
+
+        <div class="input-card" id="dropZone">
+            <div class="input-header">
+                <h2>Source Image</h2>
+                <div class="input-actions">
+                    <button class="btn-secondary" type="button" id="selectFileBtn">📂 Choose File</button>
+                    <button class="btn-danger" type="button" id="clearBtn">🗑️ Clear</button>
+                    <input type="file" accept="image/*" class="hidden-input" id="fileInput">
+                </div>
+            </div>
+            <div class="drop-message" id="dropMessage">
+                Drop an image here, click to select, or paste directly from your clipboard.
+            </div>
+            <div class="file-info" id="fileInfo" style="display: none;"></div>
+
+            <div class="preview-grid">
+                <div class="preview-card">
+                    <h3>Input Preview</h3>
+                    <img id="inputPreview" alt="Input preview" class="hidden">
+                    <div class="preview-placeholder" id="inputPlaceholder">No image loaded yet</div>
+                </div>
+                <div class="preview-card">
+                    <h3>JPEG XL Preview</h3>
+                    <img id="outputPreview" alt="JPEG XL preview" class="hidden">
+                    <div class="preview-placeholder" id="outputPlaceholder">Run conversion to view result</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quality-control" id="qualityControl">
+            <div class="quality-header">
+                <span>Quality setting</span>
+                <span id="qualityValue">75</span>
+            </div>
+            <input type="range" min="0" max="100" value="75" id="qualitySlider" class="quality-slider">
+            <div style="font-size: 12px; color: #475569; margin-top: 6px;">Higher values improve fidelity at the cost of larger output files.</div>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn-primary" type="button" id="convertBtn" disabled>⚙️ Convert to JPEG XL</button>
+        </div>
+
+        <div class="status info" id="status"></div>
+
+        <div class="results-card" id="resultsCard">
+            <div class="results-header">
+                <h2>Conversion Result</h2>
+                <span id="elapsedTime" style="font-size: 13px; color: #4b5563;"></span>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Original Size</div>
+                    <div class="metric-value" id="originalSize">-</div>
+                    <div class="metric-subvalue" id="originalDetails"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">JPEG XL Size</div>
+                    <div class="metric-value" id="convertedSize">-</div>
+                    <div class="metric-subvalue" id="convertedDetails"></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Size Difference</div>
+                    <div class="metric-value" id="sizeDelta">-</div>
+                    <div class="metric-subvalue" id="sizePercent">-</div>
+                </div>
+            </div>
+            <div class="result-actions">
+                <button class="btn-primary" type="button" id="downloadBtn" disabled>💾 Download JPEG XL</button>
+                <button class="btn-secondary" type="button" id="copyBase64Btn" disabled>📋 Copy as Base64</button>
+            </div>
+        </div>
+
+        <div class="footer">
+                Using @jsquash/jxl • All processing done locally in browser<br>
+                <a href="https://jjw.is-a.dev">@thejjw</a> • 2025.10.
+        </div>
+    </div>
+
+    <script type="module">
+        import loadEncoder from './lib/jxl@1.3.0/jxl_enc.js';
+
+        const defaultOptions = {
+            effort: 7,
+            quality: 75,
+            progressive: false,
+            epf: -1,
+            lossyPalette: false,
+            decodingSpeedTier: 0,
+            photonNoiseIso: 0,
+            lossyModular: false,
+            lossless: false
+        };
+
+        const state = {
+            mode: 'transcode',
+            quality: 75,
+            file: null,
+            originalBytes: null,
+            rgbaPixels: null,
+            width: 0,
+            height: 0,
+            outputBytes: null,
+            outputUrl: null,
+            inputPreviewUrl: null,
+            module: null,
+            loadingModule: false
+        };
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const inputPreview = document.getElementById('inputPreview');
+        const inputPlaceholder = document.getElementById('inputPlaceholder');
+        const outputPreview = document.getElementById('outputPreview');
+        const outputPlaceholder = document.getElementById('outputPlaceholder');
+        const qualityControl = document.getElementById('qualityControl');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityValue = document.getElementById('qualityValue');
+        const convertBtn = document.getElementById('convertBtn');
+        const statusEl = document.getElementById('status');
+        const resultsCard = document.getElementById('resultsCard');
+        const originalSizeEl = document.getElementById('originalSize');
+        const originalDetailsEl = document.getElementById('originalDetails');
+        const convertedSizeEl = document.getElementById('convertedSize');
+        const convertedDetailsEl = document.getElementById('convertedDetails');
+        const sizeDeltaEl = document.getElementById('sizeDelta');
+        const sizePercentEl = document.getElementById('sizePercent');
+        const elapsedTimeEl = document.getElementById('elapsedTime');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const copyBase64Btn = document.getElementById('copyBase64Btn');
+
+        const encoderPromise = loadEncoder({
+            locateFile: (path) => `./lib/jxl@1.3.0/${path}`
+        }).then((module) => {
+            state.module = module;
+            return module;
+        }).catch((error) => {
+            showStatus(`Failed to load encoder: ${error.message}`, 'error');
+            throw error;
+        });
+
+        function formatBytes(bytes) {
+            if (!bytes && bytes !== 0) return '-';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const exponent = Math.min(Math.floor(Math.log(bytes || 1) / Math.log(1024)), units.length - 1);
+            const value = bytes / Math.pow(1024, exponent);
+            return `${value.toFixed(exponent === 0 ? 0 : 2)} ${units[exponent]}`;
+        }
+
+        function describeFile(file, bytes) {
+            const parts = [];
+            if (file?.name) parts.push(file.name);
+            if (Number.isFinite(bytes)) parts.push(formatBytes(bytes));
+            if (file?.type) parts.push(file.type);
+            return parts.join(' • ');
+        }
+
+        function showStatus(message, type = 'info') {
+            if (!message) {
+                statusEl.style.display = 'none';
+                statusEl.textContent = '';
+                return;
+            }
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        function resetOutput() {
+            resultsCard.style.display = 'none';
+            downloadBtn.disabled = true;
+            copyBase64Btn.disabled = true;
+            if (state.outputUrl) {
+                URL.revokeObjectURL(state.outputUrl);
+                state.outputUrl = null;
+            }
+            state.outputBytes = null;
+            outputPreview.classList.add('hidden');
+            outputPreview.removeAttribute('src');
+            outputPlaceholder.textContent = 'Run conversion to view result';
+        }
+
+        function clearInput() {
+            state.file = null;
+            state.originalBytes = null;
+            state.rgbaPixels = null;
+            state.width = 0;
+            state.height = 0;
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            fileInfo.textContent = '';
+            if (state.inputPreviewUrl) {
+                URL.revokeObjectURL(state.inputPreviewUrl);
+                state.inputPreviewUrl = null;
+            }
+            inputPreview.classList.add('hidden');
+            inputPreview.removeAttribute('src');
+            inputPlaceholder.textContent = 'No image loaded yet';
+            resetOutput();
+            updateConvertAvailability();
+            showStatus('Input cleared.', 'info');
+        }
+
+        function updateModeUI(mode) {
+            state.mode = mode;
+            document.querySelectorAll('.mode-option').forEach((option) => {
+                const active = option.dataset.mode === mode;
+                option.classList.toggle('active', active);
+            });
+            qualityControl.style.display = mode === 'encode' ? 'block' : 'none';
+            resetOutput();
+            updateConvertAvailability();
+            if (mode === 'transcode' && state.file && state.file.type !== 'image/jpeg') {
+                showStatus('Lossless transcoding requires a JPEG source. Use Image Encoding mode for other formats.', 'info');
+            } else {
+                showStatus('Ready. Load an image to get started.', 'info');
+            }
+        }
+
+        function updateConvertAvailability() {
+            const hasBytes = state.originalBytes && state.originalBytes.length;
+            const moduleReady = Boolean(state.module);
+            let enabled = hasBytes && moduleReady;
+            if (state.mode === 'encode') {
+                enabled = enabled && state.rgbaPixels && state.width > 0 && state.height > 0;
+            } else if (state.mode === 'transcode') {
+                enabled = enabled && state.file?.type === 'image/jpeg';
+            }
+            convertBtn.disabled = !enabled;
+        }
+
+        async function readFile(file) {
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                showStatus('Unsupported file type. Please choose an image.', 'error');
+                return;
+            }
+
+            showStatus('Loading image…', 'info');
+            state.file = file;
+            const arrayBuffer = await file.arrayBuffer();
+            state.originalBytes = new Uint8Array(arrayBuffer);
+
+            const previewUrl = URL.createObjectURL(file);
+            if (state.inputPreviewUrl) URL.revokeObjectURL(state.inputPreviewUrl);
+            state.inputPreviewUrl = previewUrl;
+            inputPreview.src = previewUrl;
+            inputPreview.classList.remove('hidden');
+            inputPlaceholder.textContent = '';
+
+            fileInfo.style.display = 'flex';
+            fileInfo.innerHTML = `
+                <span class="file-chip">${file.name || 'Clipboard image'}</span>
+                <span class="file-chip">${formatBytes(state.originalBytes.length)}</span>
+                <span class="file-chip">${file.type || 'unknown type'}</span>
+            `;
+
+            if (state.mode === 'encode' || file.type !== 'image/jpeg') {
+                const imageData = await extractImagePixels(file);
+                state.width = imageData.width;
+                state.height = imageData.height;
+                state.rgbaPixels = imageData.pixels;
+            } else {
+                state.width = 0;
+                state.height = 0;
+                state.rgbaPixels = null;
+            }
+
+            resetOutput();
+            updateConvertAvailability();
+            showStatus('Image ready. Choose conversion settings and click convert.', 'success');
+        }
+
+        function extractImagePixels(file) {
+            return new Promise((resolve, reject) => {
+                const objectUrl = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    ctx.drawImage(img, 0, 0);
+                    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const cloned = new Uint8Array(data.buffer.slice(0));
+                    URL.revokeObjectURL(objectUrl);
+                    resolve({ width: canvas.width, height: canvas.height, pixels: cloned });
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(new Error('Unable to decode image for encoding.'));
+                };
+                img.src = objectUrl;
+            });
+        }
+
+        function buildOptions(overrides) {
+            return Object.assign({}, defaultOptions, overrides);
+        }
+
+        async function runConversion() {
+            if (!state.file || !state.originalBytes) {
+                showStatus('Load an image before converting.', 'error');
+                return;
+            }
+
+            if (!state.module) {
+                if (!state.loadingModule) {
+                    state.loadingModule = true;
+                    await encoderPromise.finally(() => {
+                        state.loadingModule = false;
+                    });
+                }
+                if (!state.module) {
+                    showStatus('Encoder not ready. Please try again.', 'error');
+                    return;
+                }
+            }
+
+            if (state.mode === 'transcode' && state.file.type !== 'image/jpeg') {
+                showStatus('Lossless transcoding requires a JPEG source. Switch to Image Encoding mode for other formats.', 'error');
+                return;
+            }
+
+            if (state.mode === 'encode' && (!state.rgbaPixels || !state.width || !state.height)) {
+                showStatus('Image pixels unavailable. Reload the image and try again.', 'error');
+                return;
+            }
+
+            resetOutput();
+            convertBtn.disabled = true;
+            showStatus('Encoding to JPEG XL…', 'info');
+
+            try {
+                const start = performance.now();
+                let encoded;
+                if (state.mode === 'transcode') {
+                    const options = buildOptions({ lossless: true, quality: state.quality });
+                    encoded = state.module.encode(state.originalBytes, 0, 0, options);
+                } else {
+                    const options = buildOptions({ lossless: false, quality: state.quality });
+                    encoded = state.module.encode(state.rgbaPixels, state.width, state.height, options);
+                }
+
+                if (!(encoded instanceof Uint8Array) || encoded.length === 0) {
+                    throw new Error('Encoder returned an unexpected response.');
+                }
+
+                const copy = new Uint8Array(encoded);
+                state.outputBytes = copy;
+                const blob = new Blob([copy], { type: 'image/jxl' });
+                state.outputUrl = URL.createObjectURL(blob);
+
+                outputPreview.src = state.outputUrl;
+                outputPreview.classList.remove('hidden');
+                outputPlaceholder.textContent = 'Your browser must support JPEG XL for live preview.';
+
+                downloadBtn.disabled = false;
+                copyBase64Btn.disabled = false;
+
+                const elapsed = performance.now() - start;
+                elapsedTimeEl.textContent = `Completed in ${elapsed.toFixed(2)} ms`;
+
+                const originalBytes = state.originalBytes.length;
+                const convertedBytes = copy.length;
+                const difference = convertedBytes - originalBytes;
+                const percent = originalBytes ? ((difference) / originalBytes) * 100 : 0;
+
+                originalSizeEl.textContent = formatBytes(originalBytes);
+                originalDetailsEl.textContent = describeFile(state.file, originalBytes);
+                convertedSizeEl.textContent = formatBytes(convertedBytes);
+                convertedDetailsEl.textContent = `Mode: ${state.mode === 'transcode' ? 'Lossless JPEG transcode' : `Quality ${state.quality}`}`;
+                sizeDeltaEl.textContent = `${difference >= 0 ? '+' : ''}${formatBytes(Math.abs(difference))}`;
+                sizePercentEl.textContent = `${percent >= 0 ? '+' : ''}${percent.toFixed(2)}% change`;
+
+                resultsCard.style.display = 'block';
+                showStatus('Conversion finished successfully.', 'success');
+            } catch (error) {
+                console.error('JPEG XL conversion error:', error);
+                showStatus(`Conversion failed: ${error.message}`, 'error');
+            } finally {
+                convertBtn.disabled = false;
+            }
+        }
+
+        async function copyOutputAsBase64() {
+            if (!state.outputBytes) return;
+            try {
+                const base64 = await bytesToBase64(state.outputBytes);
+                await navigator.clipboard.writeText(`data:image/jxl;base64,${base64}`);
+                showStatus('JPEG XL Base64 copied to clipboard.', 'success');
+            } catch (error) {
+                console.error('Copy failed:', error);
+                showStatus('Unable to copy Base64 data.', 'error');
+            }
+        }
+
+        function bytesToBase64(bytes) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const { result } = reader;
+                    if (typeof result === 'string') {
+                        const [, base64] = result.split(',');
+                        resolve(base64 || '');
+                    } else {
+                        reject(new Error('Unexpected reader result.'));
+                    }
+                };
+                reader.onerror = () => reject(reader.error || new Error('Failed to read blob.'));
+                reader.readAsDataURL(new Blob([bytes], { type: 'image/jxl' }));
+            });
+        }
+
+        convertBtn.addEventListener('click', runConversion);
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        clearBtn.addEventListener('click', clearInput);
+        downloadBtn.addEventListener('click', () => {
+            if (!state.outputBytes) return;
+            const anchor = document.createElement('a');
+            anchor.href = state.outputUrl;
+            const baseName = state.file?.name ? state.file.name.replace(/\.[^.]+$/, '') : 'image';
+            anchor.download = `${baseName}.jxl`;
+            anchor.click();
+        });
+        copyBase64Btn.addEventListener('click', copyOutputAsBase64);
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files?.[0];
+            if (file) {
+                await readFile(file);
+            }
+        });
+
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = event.dataTransfer?.files?.[0];
+            if (file) {
+                await readFile(file);
+            }
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        document.addEventListener('paste', async (event) => {
+            const items = event.clipboardData?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        await readFile(file);
+                        break;
+                    }
+                }
+            }
+        });
+
+        qualitySlider.addEventListener('input', () => {
+            const value = Number(qualitySlider.value);
+            state.quality = value;
+            qualityValue.textContent = value.toString();
+        });
+
+        document.querySelectorAll('input[name="mode"]').forEach((input) => {
+            input.addEventListener('change', (event) => {
+                const mode = event.target.value;
+                updateModeUI(mode);
+            });
+        });
+
+        updateModeUI(state.mode);
+        showStatus('Initializing encoder…', 'info');
+        encoderPromise.then(() => {
+            updateConvertAvailability();
+            showStatus('Encoder ready. Load an image to begin.', 'success');
+        });
+    </script>
+</body>
+</html>
