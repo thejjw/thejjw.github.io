@@ -191,7 +191,10 @@
                 <div class="space-y-4">
                     <h3 class="text-lg font-semibold text-gray-300">Encrypted Payload (Base64) - SHARE THIS</h3>
                     <textarea id="ciphertext" class="w-full p-4 rounded-lg h-32" readonly placeholder="Encrypted payload (Salt + IV + Ciphertext) will appear here..."></textarea>
-                    <button onclick="copyToClipboard('ciphertext')" class="btn-secondary py-2 px-4 rounded-lg">Copy Payload</button>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button onclick="copyToClipboard('ciphertext')" class="btn-secondary py-2 px-4 rounded-lg flex-1">Copy Payload</button>
+                        <button id="downloadPayloadBtn" class="btn-secondary py-2 px-4 rounded-lg flex-1" disabled>Download Payload</button>
+                    </div>
                 </div>
             </div>
 
@@ -216,6 +219,11 @@
                 <div class="space-y-4 pt-6 border-t border-gray-700">
                     <h2 class="text-xl font-semibold text-pink-300">2. Paste Encrypted Payload</h2>
                     <textarea id="import-payload-input" class="w-full p-4 rounded-lg h-32" placeholder="Paste the encrypted payload (Base64)..."></textarea>
+                    <div class="space-y-2">
+                        <label class="text-sm font-semibold text-gray-300" for="payloadFileInput">Or load payload from file</label>
+                        <input id="payloadFileInput" type="file" accept=".txt,.payload,.bin,.base64" class="w-full text-sm text-gray-300 bg-[#16213e] border border-[#4a0d6f] rounded-lg py-2 px-3" />
+                        <p class="text-xs text-gray-500">File contents should be the Base64 payload string. We keep everything local.</p>
+                    </div>
                 </div>
 
                 <!-- 3. Decryption -->
@@ -327,7 +335,10 @@
         const decryptFilenameInput = document.getElementById('decryptFilename');
         const decryptMimeInput = document.getElementById('decryptMime');
         const decryptedOutputTextarea = document.getElementById('decrypted-output');
+        const downloadPayloadBtn = document.getElementById('downloadPayloadBtn');
+        const payloadFileInput = document.getElementById('payloadFileInput');
         let decryptBinaryDownloadURL = null;
+        let encryptPayloadDownloadURL = null;
 
         const ensureEffWordList = async () => {
             if (effWordListPromise) {
@@ -414,6 +425,25 @@
                     ? "Binary mode selected. Status details will appear here after decryption."
                     : "Decrypted plaintext will appear here...";
             }
+        };
+
+        const enablePayloadDownload = (payload, fileName = 'encrypted-payload.txt') => {
+            if (!downloadPayloadBtn) {
+                return;
+            }
+            if (encryptPayloadDownloadURL) {
+                URL.revokeObjectURL(encryptPayloadDownloadURL);
+                encryptPayloadDownloadURL = null;
+            }
+            if (!payload) {
+                downloadPayloadBtn.disabled = true;
+                delete downloadPayloadBtn.dataset.downloadName;
+                return;
+            }
+            const blob = new Blob([payload], { type: 'text/plain;charset=utf-8' });
+            encryptPayloadDownloadURL = URL.createObjectURL(blob);
+            downloadPayloadBtn.disabled = false;
+            downloadPayloadBtn.dataset.downloadName = fileName;
         };
 
         // Utility to display status messages
@@ -504,6 +534,7 @@
             }
 
             try {
+                enablePayloadDownload(null);
                 const encoder = new TextEncoder();
                 let plaintextBuffer;
                 let binaryFileName = null;
@@ -542,6 +573,11 @@
                 // Convert payload to Base64 for sharing
                 const payloadBase64 = arrayBufferToBase64(payloadBuffer.buffer);
                 ciphertextOutput.value = payloadBase64;
+                enablePayloadDownload(payloadBase64, `${binaryFileName || 'plaintext'}.payload.txt`);
+                if (decryptBinaryDownloadURL) {
+                    URL.revokeObjectURL(decryptBinaryDownloadURL);
+                    decryptBinaryDownloadURL = null;
+                }
 
                 if (isBinaryInput) {
                     updateStatus(`🔒 File "${binaryFileName}" encrypted. Share the payload string and password phrase.`);
@@ -552,6 +588,7 @@
             } catch (err) {
                 console.error("Encryption Error:", err);
                 updateStatus("❌ Encryption failed: " + err.message, true);
+                enablePayloadDownload(null);
             }
         }
 
@@ -687,6 +724,40 @@
 
             syncEncryptInputMode();
             syncDecryptOutputMode();
+
+            if (downloadPayloadBtn) {
+                downloadPayloadBtn.addEventListener('click', () => {
+                    if (!encryptPayloadDownloadURL) {
+                        return;
+                    }
+                    const link = document.createElement('a');
+                    link.href = encryptPayloadDownloadURL;
+                    link.download = downloadPayloadBtn.dataset.downloadName || 'encrypted-payload.txt';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            }
+
+            if (payloadFileInput) {
+                payloadFileInput.addEventListener('change', async () => {
+                    if (!payloadFileInput.files || !payloadFileInput.files.length) {
+                        return;
+                    }
+                    const file = payloadFileInput.files[0];
+                    try {
+                        const text = await file.text();
+                        document.getElementById('import-payload-input').value = text.trim();
+                        payloadFileInput.value = '';
+                        updateStatus(`Loaded payload from file "${file.name}". You can decrypt now.`);
+                    } catch (error) {
+                        console.error('Payload file read error:', error);
+                        updateStatus('❌ Failed to read payload file. Please try again or paste manually.', true);
+                    }
+                });
+            }
+
+            enablePayloadDownload(null);
 
             const switchWordListMode = async (mode) => {
                 if (mode === 'eff') {
