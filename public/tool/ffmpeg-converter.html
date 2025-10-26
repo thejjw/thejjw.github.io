@@ -159,6 +159,35 @@
       background: rgba(34, 197, 94, 0.22);
     }
 
+    .footer {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .footer__tag,
+    .footer__divider,
+    .footer__year {
+      opacity: 0.85;
+      letter-spacing: 0.02em;
+    }
+
+    .footer__link {
+      color: #bfdbfe;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+
+    .footer__link:hover {
+      color: #60a5fa;
+    }
+
     @media (max-width: 640px) {
       body {
         padding: 1.5rem;
@@ -170,6 +199,10 @@
 
       .log {
         height: 160px;
+      }
+
+      .footer {
+        margin-top: 1.5rem;
       }
     }
   </style>
@@ -196,16 +229,24 @@
     <pre class="log" id="logOutput" aria-live="polite">Logs will appear here…</pre>
 
     <a id="downloadLink" class="download" href="#" download="output.mp4" hidden>Download output.mp4</a>
+    <footer class="footer">
+      <span class="footer__tag">Powered by @ffmpegwasm/ffmpeg.wasm</span>
+      <span class="footer__divider">•</span>
+      <span class="footer__tag">All processing stays local</span>
+      <span class="footer__divider">•</span>
+      <a class="footer__link" href="https://jjw.is-a.dev" rel="noopener" target="_blank">@thejjw</a>
+      <span class="footer__year">2025.10</span>
+    </footer>
   </main>
 
   <script type="module">
-    import { FFmpeg } from "./lib/@ffmpeg/ffmpeg/dist/esm/classes.js";
-    import { fetchFile } from "./lib/@ffmpeg/util/dist/esm/index.js";
+    import { FFmpeg } from "./lib/ffmpeg/ffmpeg@0.12.15/dist/esm/classes.js";
+    import { fetchFile } from "./lib/ffmpeg/util@0.12.2/dist/esm/index.js";
 
     const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 
-    const ffmpeg = new FFmpeg();
-    const coreBaseURL = new URL("./lib/@ffmpeg/core/dist/esm/", import.meta.url);
+  const ffmpeg = new FFmpeg();
+  const coreBaseURL = new URL("./lib/ffmpeg/core@0.12.10/dist/esm/", import.meta.url);
 
     const formEl = document.getElementById("transcode-form");
     const fileInputEl = document.getElementById("fileInput");
@@ -400,11 +441,5 @@
       }
     });
   </script>
-
-    <!-- Footer -->
-    <div class="footer">
-        Using @ffmpegwasm/ffmpeg.wasm • All processing done locally in browser<br>
-        <a href="https://jjw.is-a.dev">@thejjw</a> • 2025.10.
-    </div>
 </body>
 </html>
