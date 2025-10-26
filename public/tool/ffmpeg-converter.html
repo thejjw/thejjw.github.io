@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FFmpeg.wasm x264 Transcoder</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: #0f172a;
+      color: #e2e8f0;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 55%, #020617 100%);
+    }
+
+    .container {
+      width: min(680px, 100%);
+      background-color: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow:
+        0 20px 40px rgba(15, 23, 42, 0.6),
+        0 0 0 1px rgba(148, 163, 184, 0.2) inset;
+      backdrop-filter: blur(12px);
+    }
+
+    h1 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.75rem, 3vw, 2.4rem);
+      letter-spacing: -0.015em;
+    }
+
+    p {
+      margin: 0 0 1.5rem;
+      color: #cbd5f5;
+      line-height: 1.5;
+    }
+
+    form {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .file-input {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      border: 1px dashed rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.6);
+      color: #cbd5f5;
+      cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .file-input:hover,
+    .file-input:focus-within {
+      border-color: #60a5fa;
+      transform: translateY(-1px);
+    }
+
+    .file-input input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    button {
+      appearance: none;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border: none;
+      color: #f8fafc;
+      font-weight: 600;
+      padding: 0.85rem 1.5rem;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+      box-shadow: none;
+    }
+
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 35px rgba(37, 99, 235, 0.45);
+    }
+
+    .status {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.85);
+      font-size: 0.95rem;
+      color: #e2e8f0;
+    }
+
+    .progress-bar {
+      height: 12px;
+      width: 100%;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .progress-bar__value {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      transition: width 0.2s ease-in-out;
+    }
+
+    .log {
+      height: 180px;
+      margin: 0 0 1.5rem;
+      padding: 1rem;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .download {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.15);
+      color: #bbf7d0;
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .download:hover {
+      transform: translateY(-1px);
+      background: rgba(34, 197, 94, 0.22);
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 1.5rem;
+      }
+
+      .container {
+        padding: 1.5rem;
+      }
+
+      .log {
+        height: 160px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>FFmpeg.wasm x264 Transcoder</h1>
+    <p>Select a video file under 2&nbsp;GB and transcode it to an H.264 MP4 directly in your browser with the local ffmpeg.wasm build.</p>
+
+    <form id="transcode-form" autocomplete="off">
+      <label class="file-input">
+        <span id="fileLabel">Choose a video file…</span>
+        <input type="file" id="fileInput" accept="video/*" required>
+      </label>
+      <button type="submit" id="transcodeButton">Transcode to MP4</button>
+    </form>
+
+    <div class="status" id="status">FFmpeg core not loaded.</div>
+
+    <div class="progress-bar" id="progressContainer" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-bar__value" id="progressBar"></div>
+    </div>
+
+    <pre class="log" id="logOutput" aria-live="polite">Logs will appear here…</pre>
+
+    <a id="downloadLink" class="download" href="#" download="output.mp4" hidden>Download output.mp4</a>
+  </main>
+
+  <script type="module">
+    import { FFmpeg } from "./lib/@ffmpeg/ffmpeg/dist/esm/classes.js";
+    import { fetchFile } from "./lib/@ffmpeg/util/dist/esm/index.js";
+
+    const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
+
+    const ffmpeg = new FFmpeg();
+    const coreBaseURL = new URL("./lib/@ffmpeg/core/dist/esm/", import.meta.url);
+
+    const formEl = document.getElementById("transcode-form");
+    const fileInputEl = document.getElementById("fileInput");
+    const fileLabelEl = document.getElementById("fileLabel");
+    const transcodeBtn = document.getElementById("transcodeButton");
+    const statusEl = document.getElementById("status");
+    const progressContainerEl = document.getElementById("progressContainer");
+    const progressBarEl = document.getElementById("progressBar");
+    const logOutputEl = document.getElementById("logOutput");
+    const downloadLinkEl = document.getElementById("downloadLink");
+
+    let isLoadingCore = false;
+    let isTranscoding = false;
+    let currentDownloadURL = null;
+
+    const setStatus = (message) => {
+      statusEl.textContent = message;
+    };
+
+    const resetProgress = () => {
+      progressContainerEl.setAttribute("aria-valuenow", "0");
+      progressBarEl.style.width = "0%";
+    };
+
+    const appendLog = (message) => {
+      const text = typeof message === "string" ? message : JSON.stringify(message);
+      logOutputEl.textContent += `${text}\n`;
+      logOutputEl.scrollTop = logOutputEl.scrollHeight;
+    };
+
+    const clearLog = () => {
+      logOutputEl.textContent = "";
+    };
+
+    const revokeDownloadURL = () => {
+      if (currentDownloadURL) {
+        URL.revokeObjectURL(currentDownloadURL);
+        currentDownloadURL = null;
+      }
+    };
+
+    const formatBytes = (bytes) => {
+      const units = ["B", "KB", "MB", "GB", "TB"];
+      let size = bytes;
+      let unit = 0;
+      while (size >= 1024 && unit < units.length - 1) {
+        size /= 1024;
+        unit += 1;
+      }
+      return `${size.toFixed(unit === 0 ? 0 : size < 10 ? 2 : 1)} ${units[unit]}`;
+    };
+
+    const ensureCoreLoaded = async () => {
+      if (ffmpeg.loaded || isLoadingCore) {
+        while (isLoadingCore) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        return;
+      }
+
+      try {
+        isLoadingCore = true;
+        setStatus("Loading FFmpeg core (this happens once)…");
+        await ffmpeg.load({
+          coreURL: new URL("ffmpeg-core.js", coreBaseURL).href,
+          wasmURL: new URL("ffmpeg-core.wasm", coreBaseURL).href
+        });
+        setStatus("FFmpeg core loaded. Ready when you are.");
+      } catch (error) {
+        console.error(error);
+        setStatus("Failed to load FFmpeg core. See logs for details.");
+        appendLog(`load error: ${error}`);
+        throw error;
+      } finally {
+        isLoadingCore = false;
+      }
+    };
+
+    ffmpeg.on("log", ({ message }) => {
+      appendLog(message);
+    });
+
+    ffmpeg.on("progress", ({ progress }) => {
+      if (typeof progress === "number") {
+        const percent = Math.min(100, Math.round(progress * 100));
+        progressContainerEl.setAttribute("aria-valuenow", String(percent));
+        progressBarEl.style.width = `${percent}%`;
+      }
+    });
+
+    fileInputEl.addEventListener("change", () => {
+      const file = fileInputEl.files && fileInputEl.files[0];
+      if (file) {
+        fileLabelEl.textContent = `${file.name} (${formatBytes(file.size)})`;
+      } else {
+        fileLabelEl.textContent = "Choose a video file…";
+      }
+      revokeDownloadURL();
+      downloadLinkEl.hidden = true;
+    });
+
+    formEl.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (isTranscoding) {
+        return;
+      }
+
+      const file = fileInputEl.files && fileInputEl.files[0];
+      if (!file) {
+        setStatus("Select a video file before transcoding.");
+        return;
+      }
+
+      if (file.size > MAX_SIZE_BYTES) {
+        setStatus("File is larger than 2 GB. Please choose a smaller file.");
+        return;
+      }
+
+      revokeDownloadURL();
+      downloadLinkEl.hidden = true;
+      clearLog();
+      resetProgress();
+
+      try {
+        isTranscoding = true;
+        transcodeBtn.disabled = true;
+        fileInputEl.disabled = true;
+        setStatus("Preparing FFmpeg core…");
+
+        await ensureCoreLoaded();
+
+        setStatus("Uploading file to FFmpeg virtual filesystem…");
+        const data = await fetchFile(file);
+        const inputExtension = file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : "";
+        const inputName = `input${inputExtension}`;
+        const outputName = "output.mp4";
+
+        await ffmpeg.writeFile(inputName, data);
+
+        setStatus("Transcoding with libx264… hold tight.");
+        const resultCode = await ffmpeg.exec([
+          "-i", inputName,
+          "-c:v", "libx264",
+          "-preset", "medium",
+          "-movflags", "faststart",
+          "-profile:v", "high",
+          "-b:v", "3500k",
+          "-c:a", "aac",
+          "-b:a", "160k",
+          outputName
+        ]);
+
+        if (resultCode !== 0) {
+          setStatus(`FFmpeg exited with code ${resultCode}. Check the logs.`);
+          return;
+        }
+
+        setStatus("Reading transcoded output…");
+        const outputData = await ffmpeg.readFile(outputName);
+
+        const outputBlob = new Blob([outputData.buffer], { type: "video/mp4" });
+        currentDownloadURL = URL.createObjectURL(outputBlob);
+        downloadLinkEl.href = currentDownloadURL;
+        downloadLinkEl.download = `transcoded-${file.name.replace(/\.[^.]+$/, "") || "video"}.mp4`;
+        downloadLinkEl.hidden = false;
+
+        setStatus("All done! Download your MP4 below.");
+      } catch (error) {
+        console.error(error);
+        setStatus("Something went wrong. See logs for details.");
+        appendLog(`transcode error: ${error}`);
+      } finally {
+        const file = fileInputEl.files && fileInputEl.files[0];
+        const inputExtension = file && file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : "";
+        const inputName = `input${inputExtension}`;
+        const outputName = "output.mp4";
+
+        try {
+          await ffmpeg.deleteFile(inputName);
+        } catch (_) {
+          // no-op if the file does not exist
+        }
+        try {
+          await ffmpeg.deleteFile(outputName);
+        } catch (_) {
+          // no-op if the file does not exist
+        }
+
+        fileInputEl.disabled = false;
+        transcodeBtn.disabled = false;
+        isTranscoding = false;
+      }
+    });
+  </script>
+
+    <!-- Footer -->
+    <div class="footer">
+        Using @ffmpegwasm/ffmpeg.wasm • All processing done locally in browser<br>
+        <a href="https://jjw.is-a.dev">@thejjw</a> • 2025.10.
+    </div>
+</body>
+</html>
