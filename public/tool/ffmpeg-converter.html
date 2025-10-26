@@ -145,6 +145,48 @@
       color: #bfdbfe;
     }
 
+    .advanced-toggle {
+      justify-self: flex-start;
+      padding: 0.45rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      background: rgba(15, 23, 42, 0.5);
+      color: #bfdbfe;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .advanced-toggle:hover,
+    .advanced-toggle:focus-visible {
+      border-color: rgba(96, 165, 250, 0.6);
+      background: rgba(37, 99, 235, 0.22);
+      outline: none;
+    }
+
+    .advanced-panel {
+      display: grid;
+      margin-top: 0.25rem;
+      gap: 1rem;
+    }
+
+    .advanced-panel fieldset {
+      margin: 0;
+    }
+
+    .field--checkbox label {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .field--checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #60a5fa;
+    }
+
     .file-input {
       position: relative;
       display: inline-flex;
@@ -322,7 +364,7 @@
               <span class="field-label">Codec</span>
               <select id="videoCodec">
                 <option value="libx264" selected>H.264 (libx264)</option>
-                <option value="libx265">H.265 (libx265)</option>
+                <option value="libx265" disabled>H.265 (libx265)</option>
               </select>
             </label>
             <label>
@@ -376,6 +418,33 @@
         <strong>Estimated output:</strong>
         <span id="estimateText">Select a video to see output size and bitrate estimate.</span>
       </div>
+      <button type="button" class="advanced-toggle" id="advancedToggle" aria-expanded="false">Show advanced options</button>
+      <div class="advanced-panel" id="advancedPanel" hidden>
+        <fieldset>
+          <legend>Advanced Controls</legend>
+          <div class="field">
+            <label>
+              <span class="field-label">Rate control</span>
+              <select id="rateControlMode">
+                <option value="bitrate" selected>Target bitrate (kbps)</option>
+                <option value="crf">Constant quality (CRF)</option>
+              </select>
+            </label>
+          </div>
+          <div class="field field--inline" id="crfField" hidden>
+            <label>
+              <span class="field-label">CRF value (lower is higher quality)</span>
+              <input type="number" id="videoCrf" min="18" max="28" step="1" value="23">
+            </label>
+          </div>
+          <div class="field field--checkbox" id="twoPassField">
+            <label>
+              <input type="checkbox" id="twoPass">
+              <span>Enable 2-pass encoding (bitrate mode only)</span>
+            </label>
+          </div>
+        </fieldset>
+      </div>
       <button type="submit" id="transcodeButton">Transcode to MP4</button>
     </form>
 
@@ -403,6 +472,10 @@
     import { fetchFile } from "./lib/ffmpeg/util@0.12.2/index.js";
 
     const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
+    const DEFAULT_CRF = {
+      libx264: 23,
+      libx265: 28
+    };
 
     const ffmpeg = new FFmpeg();
     const coreBaseURL = new URL("./lib/ffmpeg/core@0.12.10/", import.meta.url);
@@ -425,11 +498,20 @@
     const audioBitrateRow = document.getElementById("audioBitrateRow");
     const audioBitrateEl = document.getElementById("audioBitrate");
     const estimateTextEl = document.getElementById("estimateText");
+    const advancedToggleEl = document.getElementById("advancedToggle");
+    const advancedPanelEl = document.getElementById("advancedPanel");
+    const rateControlModeEl = document.getElementById("rateControlMode");
+    const videoCrfEl = document.getElementById("videoCrf");
+    const crfFieldEl = document.getElementById("crfField");
+    const twoPassFieldEl = document.getElementById("twoPassField");
+    const twoPassEl = document.getElementById("twoPass");
 
     let isLoadingCore = false;
     let isTranscoding = false;
     let currentDownloadURL = null;
     let mediaInfo = { duration: 0, averageKbps: 0 };
+    let lastAppliedCrfDefault = DEFAULT_CRF[videoCodecEl.value] ?? 23;
+    let userAdjustedCrf = false;
 
     const setStatus = (message) => {
       statusEl.textContent = message;
@@ -457,6 +539,19 @@
       }
     };
 
+    const deleteIfExists = async (...paths) => {
+      for (const path of paths) {
+        if (!path) {
+          continue;
+        }
+        try {
+          await ffmpeg.deleteFile(path);
+        } catch (_) {
+          // ignore missing files during cleanup
+        }
+      }
+    };
+
     const formatBytes = (bytes) => {
       const units = ["B", "KB", "MB", "GB", "TB"];
       let size = bytes;
@@ -472,6 +567,8 @@
       if (!Number.isFinite(value)) return min;
       return Math.min(Math.max(value, min), max);
     };
+
+    const clampCrf = (value) => clampNumber(value, 18, 28);
 
     const extractMediaInfo = async (file) => {
       const objectUrl = URL.createObjectURL(file);
@@ -505,7 +602,86 @@
       audioBitrateRow.classList.toggle("field--disabled", copyMode);
     };
 
+    const applyCrfDefaultIfNeeded = () => {
+      const codec = videoCodecEl.value;
+      const defaultValue = DEFAULT_CRF[codec] ?? 23;
+      if (!userAdjustedCrf || Number(videoCrfEl.value) === lastAppliedCrfDefault) {
+        videoCrfEl.value = String(defaultValue);
+        userAdjustedCrf = false;
+      }
+      lastAppliedCrfDefault = defaultValue;
+    };
+
+    const syncRateControlUI = () => {
+      const isCrfMode = rateControlModeEl.value === "crf";
+      const bitrateLabel = videoBitrateEl.parentElement;
+      if (bitrateLabel) {
+        bitrateLabel.style.display = isCrfMode ? "none" : "flex";
+      }
+      crfFieldEl.hidden = !isCrfMode;
+      if (isCrfMode) {
+        applyCrfDefaultIfNeeded();
+        twoPassEl.checked = false;
+      }
+      twoPassEl.disabled = isCrfMode;
+      twoPassFieldEl.hidden = isCrfMode;
+      updateEstimate();
+    };
+
+    const buildVideoArgs = ({
+      videoCodec,
+      preset,
+      isCrfMode,
+      videoBitrateKbps,
+      videoCrf,
+      profile
+    }) => {
+      const args = ["-c:v", videoCodec, "-preset", preset, "-pix_fmt", "yuv420p"];
+      if (isCrfMode) {
+        args.push("-crf", String(videoCrf));
+      } else {
+        args.push("-b:v", `${videoBitrateKbps}k`);
+      }
+
+      if (videoCodec === "libx264") {
+        args.push("-profile:v", profile);
+      } else if (videoCodec === "libx265") {
+        args.push("-tag:v", "hvc1");
+      }
+
+      return args;
+    };
+
     const updateEstimate = () => {
+      const rateMode = rateControlModeEl.value;
+      const isCrfMode = rateMode === "crf";
+      const audioMode = audioModeEl.value;
+
+      let audioSummary = "";
+      let audioBitrateRounded = 0;
+
+      if (audioMode === "aac") {
+        const normalizedAudio = clampNumber(Number(audioBitrateEl.value) || 0, 64, 512);
+        audioBitrateRounded = Math.round(normalizedAudio);
+        audioBitrateEl.value = String(audioBitrateRounded);
+        audioSummary = `Audio AAC ${audioBitrateRounded} kbps`;
+      }
+
+      if (isCrfMode) {
+        const defaultCrf = DEFAULT_CRF[videoCodecEl.value] ?? 23;
+        const crfValue = clampCrf(Number(videoCrfEl.value) || defaultCrf);
+        videoCrfEl.value = String(crfValue);
+        if (audioMode === "copy") {
+          if (mediaInfo.averageKbps > 0) {
+            audioSummary = `Audio copy (~${mediaInfo.averageKbps.toFixed(0)} kbps source)`;
+          } else {
+            audioSummary = "Audio copy (source bitrate not detected)";
+          }
+        }
+        estimateTextEl.textContent = `Constant quality (CRF ${crfValue}) mode selected. Output size depends on content${audioSummary ? ` • ${audioSummary}` : ""}.`;
+        return;
+      }
+
       if (!mediaInfo.duration || !Number.isFinite(mediaInfo.duration) || mediaInfo.duration <= 0) {
         estimateTextEl.textContent = "Select a video to see output size and bitrate estimate.";
         return;
@@ -513,22 +689,20 @@
 
       const videoBitrate = clampNumber(Number(videoBitrateEl.value) || 0, 200, 50000);
       const videoBitrateRounded = Math.round(videoBitrate);
-      const audioMode = audioModeEl.value;
-      let audioBitrate;
-      let audioSummary;
+      videoBitrateEl.value = String(videoBitrateRounded);
+
+      let audioBitrateForTotal = 0;
 
       if (audioMode === "copy") {
-        const estimatedAudio = Math.max(0, mediaInfo.averageKbps - videoBitrate);
-        audioBitrate = estimatedAudio;
-        audioSummary = estimatedAudio > 0
-          ? `Audio copy (~${estimatedAudio.toFixed(0)} kbps)`
+        audioBitrateForTotal = Math.max(0, mediaInfo.averageKbps - videoBitrateRounded);
+        audioSummary = audioBitrateForTotal > 0
+          ? `Audio copy (~${audioBitrateForTotal.toFixed(0)} kbps)`
           : "Audio copy (source bitrate not detected)";
       } else {
-        audioBitrate = clampNumber(Number(audioBitrateEl.value) || 0, 48, 512);
-        audioSummary = `Audio AAC ${Math.round(audioBitrate)} kbps`;
+        audioBitrateForTotal = audioBitrateRounded;
       }
 
-      const totalKbps = videoBitrate + audioBitrate;
+      const totalKbps = videoBitrateRounded + audioBitrateForTotal;
       const estimatedBytes = totalKbps * 1000 * mediaInfo.duration / 8;
       const totalMbps = totalKbps / 1000;
 
@@ -595,9 +769,35 @@
       updateEstimate();
     });
 
+    advancedToggleEl.addEventListener("click", () => {
+      const expanded = advancedToggleEl.getAttribute("aria-expanded") === "true";
+      const nextExpanded = !expanded;
+      advancedToggleEl.setAttribute("aria-expanded", String(nextExpanded));
+      advancedPanelEl.hidden = !nextExpanded;
+      advancedToggleEl.textContent = nextExpanded ? "Hide advanced options" : "Show advanced options";
+    });
+
+    rateControlModeEl.addEventListener("change", () => {
+      if (rateControlModeEl.value === "crf") {
+        applyCrfDefaultIfNeeded();
+      }
+      syncRateControlUI();
+    });
+
+    videoCrfEl.addEventListener("input", () => {
+      const defaultCrf = DEFAULT_CRF[videoCodecEl.value] ?? 23;
+      const sanitized = clampCrf(Number(videoCrfEl.value) || defaultCrf);
+      videoCrfEl.value = String(sanitized);
+      userAdjustedCrf = true;
+      updateEstimate();
+    });
+
     videoCodecEl.addEventListener("change", () => {
       syncProfileVisibility();
-      updateEstimate();
+      if (rateControlModeEl.value === "crf") {
+        applyCrfDefaultIfNeeded();
+      }
+      syncRateControlUI();
     });
 
     videoBitrateEl.addEventListener("input", updateEstimate);
@@ -612,7 +812,8 @@
 
     syncProfileVisibility();
     syncAudioControls();
-    updateEstimate();
+    applyCrfDefaultIfNeeded();
+    syncRateControlUI();
 
     formEl.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -636,27 +837,47 @@
       clearLog();
       resetProgress();
 
+      let inputName = "";
+      const outputName = "output.mp4";
+      const passOutputName = "temp-pass.mp4";
+      const passLogPrefix = "ffmpeg-passlog";
+
       try {
         isTranscoding = true;
         transcodeBtn.disabled = true;
         fileInputEl.disabled = true;
         const videoCodec = videoCodecEl.value;
         const preset = videoPresetEl.value;
-        const videoBitrate = clampNumber(Number(videoBitrateEl.value) || 0, 200, 50000);
-        const videoBitrateKbps = Math.round(videoBitrate);
-        videoBitrateEl.value = String(videoBitrateKbps);
+        const rateControlMode = rateControlModeEl.value;
+        const isCrfMode = rateControlMode === "crf";
+        const profile = videoProfileEl.value;
+        const codecLabel = videoCodec === "libx265" ? "H.265/HEVC" : "H.264/AVC";
+
+        let videoBitrateKbps = null;
+        let videoCrfValue = null;
+
+        if (isCrfMode) {
+          const defaultCrf = DEFAULT_CRF[videoCodec] ?? 23;
+          videoCrfValue = clampCrf(Number(videoCrfEl.value) || defaultCrf);
+          videoCrfEl.value = String(videoCrfValue);
+        } else {
+          const videoBitrate = clampNumber(Number(videoBitrateEl.value) || 0, 200, 50000);
+          videoBitrateKbps = Math.round(videoBitrate);
+          videoBitrateEl.value = String(videoBitrateKbps);
+        }
+
         const audioMode = audioModeEl.value;
         let audioBitrateKbps = null;
         if (audioMode !== "copy") {
-          const normalizedAudio = clampNumber(Number(audioBitrateEl.value) || 0, 48, 512);
+          const normalizedAudio = clampNumber(Number(audioBitrateEl.value) || 0, 64, 512);
           audioBitrateKbps = Math.round(normalizedAudio);
           audioBitrateEl.value = String(audioBitrateKbps);
         }
-        const profile = videoProfileEl.value;
-        const codecLabel = videoCodec === "libx265" ? "H.265/HEVC" : "H.264/AVC";
-    const audioSummary = audioMode === "copy" ? "copying source audio" : `${audioBitrateKbps} kbps AAC`;
+        const enableTwoPass = !isCrfMode && twoPassEl.checked;
+        const rateSummary = isCrfMode ? `CRF ${videoCrfValue}` : `${videoBitrateKbps} kbps`;
+        const audioSummary = audioMode === "copy" ? "copying source audio" : `${audioBitrateKbps} kbps AAC`;
 
-    updateEstimate();
+        updateEstimate();
 
         setStatus("Preparing FFmpeg core…");
 
@@ -665,37 +886,85 @@
         setStatus("Uploading file to FFmpeg virtual filesystem…");
         const data = await fetchFile(file);
         const inputExtension = file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : "";
-        const inputName = `input${inputExtension}`;
-        const outputName = "output.mp4";
+        inputName = `input${inputExtension}`;
 
         await ffmpeg.writeFile(inputName, data);
 
-        const args = [
+        const videoArgs = buildVideoArgs({
+          videoCodec,
+          preset,
+          isCrfMode,
+          videoBitrateKbps,
+          videoCrf: videoCrfValue,
+          profile
+        });
+
+        const finalArgs = [
+          "-y",
           "-i", inputName,
-          "-c:v", videoCodec,
-          "-preset", preset,
-          "-movflags", "faststart",
-          "-b:v", `${videoBitrateKbps}k`,
-          "-pix_fmt", "yuv420p"
+          ...videoArgs,
+          "-movflags", "faststart"
         ];
 
-        if (videoCodec === "libx264") {
-          args.push("-profile:v", profile);
-        } else if (videoCodec === "libx265") {
-          args.push("-tag:v", "hvc1");
-        }
-
         if (audioMode === "copy") {
-          args.push("-c:a", "copy");
+          finalArgs.push("-c:a", "copy");
         } else {
-          args.push("-c:a", "aac", "-b:a", `${audioBitrateKbps}k`);
+          finalArgs.push("-c:a", "aac", "-b:a", `${audioBitrateKbps}k`);
         }
 
-        args.push(outputName);
+        finalArgs.push(outputName);
 
-    setStatus(`Transcoding with ${codecLabel} at ${videoBitrateKbps} kbps video and ${audioSummary}… hold tight.`);
-    appendLog(`ffmpeg ${args.join(" ")}`);
-    const resultCode = await ffmpeg.exec(args);
+        let resultCode = 0;
+
+        if (enableTwoPass) {
+          const firstPassArgs = [
+            "-y",
+            "-i", inputName,
+            ...videoArgs,
+            "-pass", "1",
+            "-passlogfile", passLogPrefix,
+            "-an",
+            "-f", "mp4",
+            passOutputName
+          ];
+
+          setStatus(`Running pass 1 of 2 with ${codecLabel} at ${rateSummary}…`);
+          appendLog(`ffmpeg ${firstPassArgs.join(" ")}`);
+          resultCode = await ffmpeg.exec(firstPassArgs);
+
+          if (resultCode !== 0) {
+            setStatus(`FFmpeg first pass exited with code ${resultCode}. Check the logs.`);
+            return;
+          }
+
+          await deleteIfExists(passOutputName);
+          resetProgress();
+
+          const secondPassArgs = [
+            "-y",
+            "-i", inputName,
+            ...videoArgs,
+            "-pass", "2",
+            "-passlogfile", passLogPrefix,
+            "-movflags", "faststart"
+          ];
+
+          if (audioMode === "copy") {
+            secondPassArgs.push("-c:a", "copy");
+          } else {
+            secondPassArgs.push("-c:a", "aac", "-b:a", `${audioBitrateKbps}k`);
+          }
+
+          secondPassArgs.push(outputName);
+
+          setStatus(`Running pass 2 of 2 with ${codecLabel} at ${rateSummary} and ${audioSummary}… hold tight.`);
+          appendLog(`ffmpeg ${secondPassArgs.join(" ")}`);
+          resultCode = await ffmpeg.exec(secondPassArgs);
+        } else {
+          setStatus(`Transcoding with ${codecLabel} at ${rateSummary} and ${audioSummary}… hold tight.`);
+          appendLog(`ffmpeg ${finalArgs.join(" ")}`);
+          resultCode = await ffmpeg.exec(finalArgs);
+        }
 
         if (resultCode !== 0) {
           setStatus(`FFmpeg exited with code ${resultCode}. Check the logs.`);
@@ -717,21 +986,15 @@
         setStatus("Something went wrong. See logs for details.");
         appendLog(`transcode error: ${error}`);
       } finally {
-        const file = fileInputEl.files && fileInputEl.files[0];
-        const inputExtension = file && file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : "";
-        const inputName = `input${inputExtension}`;
-        const outputName = "output.mp4";
-
-        try {
-          await ffmpeg.deleteFile(inputName);
-        } catch (_) {
-          // no-op if the file does not exist
-        }
-        try {
-          await ffmpeg.deleteFile(outputName);
-        } catch (_) {
-          // no-op if the file does not exist
-        }
+        await deleteIfExists(
+          inputName,
+          outputName,
+          passOutputName,
+          `${passLogPrefix}-0.log`,
+          `${passLogPrefix}-0.log.mbtree`,
+          `${passLogPrefix}.log`,
+          `${passLogPrefix}.log.mbtree`
+        );
 
         fileInputEl.disabled = false;
         transcodeBtn.disabled = false;
