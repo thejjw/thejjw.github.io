@@ -240,13 +240,13 @@
   </main>
 
   <script type="module">
-    import { FFmpeg } from "./lib/ffmpeg/ffmpeg@0.12.15/dist/esm/classes.js";
-    import { fetchFile } from "./lib/ffmpeg/util@0.12.2/dist/esm/index.js";
+    import { FFmpeg } from "./lib/ffmpeg/ffmpeg@0.12.15/classes.js";
+    import { fetchFile } from "./lib/ffmpeg/util@0.12.2/index.js";
 
     const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 
   const ffmpeg = new FFmpeg();
-  const coreBaseURL = new URL("./lib/ffmpeg/core@0.12.10/dist/esm/", import.meta.url);
+  const coreBaseURL = new URL("./lib/ffmpeg/core@0.12.10/", import.meta.url);
 
     const formEl = document.getElementById("transcode-form");
     const fileInputEl = document.getElementById("fileInput");
