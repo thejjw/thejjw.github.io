@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FFmpeg.wasm x264 Transcoder</title>
+  <title>FFmpeg.wasm Browser Transcoder</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -50,6 +50,99 @@
       display: grid;
       gap: 1rem;
       margin-bottom: 1.5rem;
+    }
+
+    .settings-panel {
+      display: grid;
+      gap: 1rem;
+    }
+
+    fieldset {
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 12px;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.55);
+    }
+
+    fieldset legend {
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0 0.35rem;
+      color: #bfdbfe;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-top: 0.65rem;
+    }
+
+    .field:first-of-type {
+      margin-top: 0.2rem;
+    }
+
+    .field label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    label span.field-label {
+      display: block;
+      font-size: 0.85rem;
+      color: #cbd5f5;
+      letter-spacing: 0.02em;
+    }
+
+    input[type="number"],
+    select {
+      appearance: none;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 23, 42, 0.6);
+      color: #e2e8f0;
+      font-size: 0.95rem;
+      padding: 0.55rem 0.75rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
+    }
+
+    input[type="number"][disabled],
+    select[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .field--inline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .field--disabled {
+      opacity: 0.6;
+    }
+
+    .estimate-box {
+      margin-top: 0.5rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      font-size: 0.9rem;
+      color: #dbeafe;
+      line-height: 1.45;
+    }
+
+    .estimate-box strong {
+      color: #bfdbfe;
     }
 
     .file-input {
@@ -201,6 +294,10 @@
         height: 160px;
       }
 
+      .field--inline {
+        grid-template-columns: 1fr;
+      }
+
       .footer {
         margin-top: 1.5rem;
       }
@@ -209,18 +306,80 @@
 </head>
 <body>
   <main class="container">
-    <h1>FFmpeg.wasm x264 Transcoder</h1>
-    <p>Select a video file under 2&nbsp;GB and transcode it to an H.264 MP4 directly in your browser with the local ffmpeg.wasm build.</p>
+  <h1>FFmpeg.wasm Browser Transcoder</h1>
+  <p>Select a video file under 2&nbsp;GB and transcode it to an MP4 using H.264 or H.265 directly in your browser with the local ffmpeg.wasm build.</p>
 
     <form id="transcode-form" autocomplete="off">
       <label class="file-input">
         <span id="fileLabel">Choose a video file…</span>
         <input type="file" id="fileInput" accept="video/*" required>
       </label>
+      <div class="settings-panel">
+        <fieldset>
+          <legend>Video Settings</legend>
+          <div class="field field--inline">
+            <label>
+              <span class="field-label">Codec</span>
+              <select id="videoCodec">
+                <option value="libx264" selected>H.264 (libx264)</option>
+                <option value="libx265">H.265 (libx265)</option>
+              </select>
+            </label>
+            <label>
+              <span class="field-label">Preset</span>
+              <select id="videoPreset">
+                <option value="ultrafast">ultrafast</option>
+                <option value="superfast">superfast</option>
+                <option value="veryfast">veryfast</option>
+                <option value="faster">faster</option>
+                <option value="fast">fast</option>
+                <option value="medium" selected>medium</option>
+                <option value="slow">slow</option>
+                <option value="slower">slower</option>
+                <option value="veryslow">veryslow</option>
+              </select>
+            </label>
+          </div>
+          <div class="field field--inline">
+            <label>
+              <span class="field-label">Video bitrate (kbps)</span>
+              <input type="number" id="videoBitrate" min="200" max="50000" step="100" value="3500">
+            </label>
+            <label id="videoProfileRow">
+              <span class="field-label">Profile</span>
+              <select id="videoProfile">
+                <option value="high" selected>High</option>
+                <option value="main">Main</option>
+                <option value="baseline">Baseline</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Audio Settings</legend>
+          <div class="field field--inline">
+            <label>
+              <span class="field-label">Mode</span>
+              <select id="audioMode">
+                <option value="aac" selected>Re-encode to AAC</option>
+                <option value="copy">Copy original audio</option>
+              </select>
+            </label>
+            <label id="audioBitrateRow">
+              <span class="field-label">AAC bitrate (kbps)</span>
+              <input type="number" id="audioBitrate" min="64" max="512" step="16" value="160">
+            </label>
+          </div>
+        </fieldset>
+      </div>
+      <div class="estimate-box" id="estimateBox">
+        <strong>Estimated output:</strong>
+        <span id="estimateText">Select a video to see output size and bitrate estimate.</span>
+      </div>
       <button type="submit" id="transcodeButton">Transcode to MP4</button>
     </form>
 
-    <div class="status" id="status">FFmpeg core not loaded.</div>
+    <div class="status" id="status">Load a video to begin. FFmpeg core loads on demand.</div>
 
     <div class="progress-bar" id="progressContainer" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <div class="progress-bar__value" id="progressBar"></div>
@@ -245,8 +404,8 @@
 
     const MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 
-  const ffmpeg = new FFmpeg();
-  const coreBaseURL = new URL("./lib/ffmpeg/core@0.12.10/", import.meta.url);
+    const ffmpeg = new FFmpeg();
+    const coreBaseURL = new URL("./lib/ffmpeg/core@0.12.10/", import.meta.url);
 
     const formEl = document.getElementById("transcode-form");
     const fileInputEl = document.getElementById("fileInput");
@@ -257,10 +416,20 @@
     const progressBarEl = document.getElementById("progressBar");
     const logOutputEl = document.getElementById("logOutput");
     const downloadLinkEl = document.getElementById("downloadLink");
+    const videoCodecEl = document.getElementById("videoCodec");
+    const videoPresetEl = document.getElementById("videoPreset");
+    const videoBitrateEl = document.getElementById("videoBitrate");
+    const videoProfileRow = document.getElementById("videoProfileRow");
+    const videoProfileEl = document.getElementById("videoProfile");
+    const audioModeEl = document.getElementById("audioMode");
+    const audioBitrateRow = document.getElementById("audioBitrateRow");
+    const audioBitrateEl = document.getElementById("audioBitrate");
+    const estimateTextEl = document.getElementById("estimateText");
 
     let isLoadingCore = false;
     let isTranscoding = false;
     let currentDownloadURL = null;
+    let mediaInfo = { duration: 0, averageKbps: 0 };
 
     const setStatus = (message) => {
       statusEl.textContent = message;
@@ -297,6 +466,73 @@
         unit += 1;
       }
       return `${size.toFixed(unit === 0 ? 0 : size < 10 ? 2 : 1)} ${units[unit]}`;
+    };
+
+    const clampNumber = (value, min, max) => {
+      if (!Number.isFinite(value)) return min;
+      return Math.min(Math.max(value, min), max);
+    };
+
+    const extractMediaInfo = async (file) => {
+      const objectUrl = URL.createObjectURL(file);
+      try {
+        const duration = await new Promise((resolve, reject) => {
+          const video = document.createElement("video");
+          video.preload = "metadata";
+          video.muted = true;
+          video.src = objectUrl;
+          video.onloadedmetadata = () => {
+            resolve(Number.isFinite(video.duration) ? video.duration : 0);
+          };
+          video.onerror = () => reject(new Error("Unable to read media metadata."));
+        });
+        const averageKbps = duration > 0 ? (file.size * 8) / 1000 / duration : 0;
+        return { duration, averageKbps };
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    const syncProfileVisibility = () => {
+      const isX264 = videoCodecEl.value === "libx264";
+      videoProfileRow.style.display = isX264 ? "block" : "none";
+      videoProfileEl.disabled = !isX264;
+    };
+
+    const syncAudioControls = () => {
+      const copyMode = audioModeEl.value === "copy";
+      audioBitrateEl.disabled = copyMode;
+      audioBitrateRow.classList.toggle("field--disabled", copyMode);
+    };
+
+    const updateEstimate = () => {
+      if (!mediaInfo.duration || !Number.isFinite(mediaInfo.duration) || mediaInfo.duration <= 0) {
+        estimateTextEl.textContent = "Select a video to see output size and bitrate estimate.";
+        return;
+      }
+
+      const videoBitrate = clampNumber(Number(videoBitrateEl.value) || 0, 200, 50000);
+      const videoBitrateRounded = Math.round(videoBitrate);
+      const audioMode = audioModeEl.value;
+      let audioBitrate;
+      let audioSummary;
+
+      if (audioMode === "copy") {
+        const estimatedAudio = Math.max(0, mediaInfo.averageKbps - videoBitrate);
+        audioBitrate = estimatedAudio;
+        audioSummary = estimatedAudio > 0
+          ? `Audio copy (~${estimatedAudio.toFixed(0)} kbps)`
+          : "Audio copy (source bitrate not detected)";
+      } else {
+        audioBitrate = clampNumber(Number(audioBitrateEl.value) || 0, 48, 512);
+        audioSummary = `Audio AAC ${Math.round(audioBitrate)} kbps`;
+      }
+
+      const totalKbps = videoBitrate + audioBitrate;
+      const estimatedBytes = totalKbps * 1000 * mediaInfo.duration / 8;
+      const totalMbps = totalKbps / 1000;
+
+      estimateTextEl.textContent = `${formatBytes(estimatedBytes)} (~${totalMbps.toFixed(2)} Mbps) for ${mediaInfo.duration.toFixed(1)} s clip • Video ${videoBitrateRounded} kbps • ${audioSummary}`;
     };
 
     const ensureCoreLoaded = async () => {
@@ -337,16 +573,46 @@
       }
     });
 
-    fileInputEl.addEventListener("change", () => {
+    fileInputEl.addEventListener("change", async () => {
       const file = fileInputEl.files && fileInputEl.files[0];
       if (file) {
         fileLabelEl.textContent = `${file.name} (${formatBytes(file.size)})`;
+        try {
+          mediaInfo = await extractMediaInfo(file);
+          setStatus("Ready to transcode. Adjust parameters and hit the button when you're set.");
+        } catch (error) {
+          console.warn(error);
+          mediaInfo = { duration: 0, averageKbps: 0 };
+          setStatus("Loaded file, but metadata could not be read. Size estimate may be limited.");
+        }
       } else {
         fileLabelEl.textContent = "Choose a video file…";
+        mediaInfo = { duration: 0, averageKbps: 0 };
+        setStatus("Load a video to begin.");
       }
       revokeDownloadURL();
       downloadLinkEl.hidden = true;
+      updateEstimate();
     });
+
+    videoCodecEl.addEventListener("change", () => {
+      syncProfileVisibility();
+      updateEstimate();
+    });
+
+    videoBitrateEl.addEventListener("input", updateEstimate);
+    videoPresetEl.addEventListener("change", updateEstimate);
+
+    audioModeEl.addEventListener("change", () => {
+      syncAudioControls();
+      updateEstimate();
+    });
+
+    audioBitrateEl.addEventListener("input", updateEstimate);
+
+    syncProfileVisibility();
+    syncAudioControls();
+    updateEstimate();
 
     formEl.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -374,6 +640,24 @@
         isTranscoding = true;
         transcodeBtn.disabled = true;
         fileInputEl.disabled = true;
+        const videoCodec = videoCodecEl.value;
+        const preset = videoPresetEl.value;
+        const videoBitrate = clampNumber(Number(videoBitrateEl.value) || 0, 200, 50000);
+        const videoBitrateKbps = Math.round(videoBitrate);
+        videoBitrateEl.value = String(videoBitrateKbps);
+        const audioMode = audioModeEl.value;
+        let audioBitrateKbps = null;
+        if (audioMode !== "copy") {
+          const normalizedAudio = clampNumber(Number(audioBitrateEl.value) || 0, 48, 512);
+          audioBitrateKbps = Math.round(normalizedAudio);
+          audioBitrateEl.value = String(audioBitrateKbps);
+        }
+        const profile = videoProfileEl.value;
+        const codecLabel = videoCodec === "libx265" ? "H.265/HEVC" : "H.264/AVC";
+    const audioSummary = audioMode === "copy" ? "copying source audio" : `${audioBitrateKbps} kbps AAC`;
+
+    updateEstimate();
+
         setStatus("Preparing FFmpeg core…");
 
         await ensureCoreLoaded();
@@ -386,18 +670,32 @@
 
         await ffmpeg.writeFile(inputName, data);
 
-        setStatus("Transcoding with libx264… hold tight.");
-        const resultCode = await ffmpeg.exec([
+        const args = [
           "-i", inputName,
-          "-c:v", "libx264",
-          "-preset", "medium",
+          "-c:v", videoCodec,
+          "-preset", preset,
           "-movflags", "faststart",
-          "-profile:v", "high",
-          "-b:v", "3500k",
-          "-c:a", "aac",
-          "-b:a", "160k",
-          outputName
-        ]);
+          "-b:v", `${videoBitrateKbps}k`,
+          "-pix_fmt", "yuv420p"
+        ];
+
+        if (videoCodec === "libx264") {
+          args.push("-profile:v", profile);
+        } else if (videoCodec === "libx265") {
+          args.push("-tag:v", "hvc1");
+        }
+
+        if (audioMode === "copy") {
+          args.push("-c:a", "copy");
+        } else {
+          args.push("-c:a", "aac", "-b:a", `${audioBitrateKbps}k`);
+        }
+
+        args.push(outputName);
+
+    setStatus(`Transcoding with ${codecLabel} at ${videoBitrateKbps} kbps video and ${audioSummary}… hold tight.`);
+    appendLog(`ffmpeg ${args.join(" ")}`);
+    const resultCode = await ffmpeg.exec(args);
 
         if (resultCode !== 0) {
           setStatus(`FFmpeg exited with code ${resultCode}. Check the logs.`);
