@@ -166,9 +166,13 @@
     }
 
     .advanced-panel {
-      display: grid;
+      display: none;
       margin-top: 0.25rem;
       gap: 1rem;
+    }
+
+    .advanced-panel.is-visible {
+      display: grid;
     }
 
     .advanced-panel fieldset {
@@ -602,6 +606,13 @@
       audioBitrateRow.classList.toggle("field--disabled", copyMode);
     };
 
+    const collapseAdvancedPanel = () => {
+      advancedPanelEl.hidden = true;
+      advancedPanelEl.classList.remove("is-visible");
+      advancedToggleEl.setAttribute("aria-expanded", "false");
+      advancedToggleEl.textContent = "Show advanced options";
+    };
+
     const applyCrfDefaultIfNeeded = () => {
       const codec = videoCodecEl.value;
       const defaultValue = DEFAULT_CRF[codec] ?? 23;
@@ -769,11 +780,14 @@
       updateEstimate();
     });
 
+    collapseAdvancedPanel();
+
     advancedToggleEl.addEventListener("click", () => {
       const expanded = advancedToggleEl.getAttribute("aria-expanded") === "true";
       const nextExpanded = !expanded;
       advancedToggleEl.setAttribute("aria-expanded", String(nextExpanded));
       advancedPanelEl.hidden = !nextExpanded;
+      advancedPanelEl.classList.toggle("is-visible", nextExpanded);
       advancedToggleEl.textContent = nextExpanded ? "Hide advanced options" : "Show advanced options";
     });
 
