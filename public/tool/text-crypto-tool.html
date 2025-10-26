@@ -158,10 +158,32 @@
                 
                 <!-- 2. Encryption -->
                 <div class="space-y-4 pt-6 border-t border-gray-700">
-                    <h2 class="text-xl font-semibold text-pink-300">2. Encrypt Plaintext</h2>
+                    <h2 class="text-xl font-semibold text-pink-300">2. Choose Input &amp; Encrypt</h2>
+
+                    <div class="space-y-2">
+                        <span class="text-sm uppercase tracking-wide text-gray-400">Input type</span>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-6 gap-2">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-200">
+                                <input type="radio" name="encryptInputMode" value="text" class="accent-pink-500" checked>
+                                Plaintext (textarea below)
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-200">
+                                <input type="radio" name="encryptInputMode" value="binary" class="accent-pink-500">
+                                Binary file (any format)
+                            </label>
+                        </div>
+                    </div>
+
                     <textarea id="plaintext" class="w-full p-4 rounded-lg h-32" placeholder="Enter text to encrypt..."></textarea>
+
+                    <div id="encryptBinaryInputWrapper" class="hidden space-y-2">
+                        <label class="text-sm font-semibold text-gray-300" for="encryptBinaryFile">Select file to encrypt</label>
+                        <input id="encryptBinaryFile" type="file" class="w-full text-sm text-gray-300 bg-[#16213e] border border-[#4a0d6f] rounded-lg py-2 px-3" />
+                        <p class="text-xs text-gray-500">File contents stay local and are encrypted entirely before being Base64 encoded.</p>
+                    </div>
+
                     <button id="encryptBtn" class="w-full btn-primary font-bold py-3 px-4 rounded-lg">
-                        Encrypt Text
+                        Encrypt Input
                     </button>
                 </div>
 
@@ -198,11 +220,33 @@
 
                 <!-- 3. Decryption -->
                 <div class="space-y-4">
+                    <div class="space-y-2">
+                        <span class="text-sm uppercase tracking-wide text-gray-400">Output type</span>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:gap-6 gap-2">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-200">
+                                <input type="radio" name="decryptOutputMode" value="text" class="accent-pink-500" checked>
+                                Plaintext preview
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-200">
+                                <input type="radio" name="decryptOutputMode" value="binary" class="accent-pink-500">
+                                Binary file download
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="decryptBinaryOptions" class="hidden space-y-2">
+                        <label class="text-sm font-semibold text-gray-300" for="decryptFilename">Download file name</label>
+                        <input id="decryptFilename" type="text" class="w-full text-sm text-gray-300 bg-[#16213e] border border-[#4a0d6f] rounded-lg py-2 px-3" placeholder="decrypted.bin">
+                        <label class="text-sm font-semibold text-gray-300" for="decryptMime">MIME type (optional)</label>
+                        <input id="decryptMime" type="text" class="w-full text-sm text-gray-300 bg-[#16213e] border border-[#4a0d6f] rounded-lg py-2 px-3" placeholder="application/octet-stream">
+                        <p class="text-xs text-gray-500">We will create and download a Blob using this metadata after successful decryption.</p>
+                    </div>
+
                     <button id="decryptBtn" class="w-full btn-primary font-bold py-3 px-4 rounded-lg">
                         Decrypt Payload
                     </button>
-                    <h3 class="text-lg font-semibold text-gray-300">Decrypted Plaintext</h3>
-                    <textarea id="decrypted-output" class="w-full p-4 rounded-lg h-32" readonly placeholder="Decrypted plaintext will appear here..."></textarea>
+                    <h3 class="text-lg font-semibold text-gray-300">Decrypted Output</h3>
+                    <textarea id="decrypted-output" class="w-full p-4 rounded-lg h-32" readonly placeholder="Decrypted plaintext (or status details) will appear here..."></textarea>
                 </div>
             </div>
 
@@ -276,6 +320,15 @@
         let activeWordList = DEMO_WORD_LIST;
         let effWordListPromise = null;
 
+        const plaintextTextarea = document.getElementById('plaintext');
+        const encryptBinaryInputWrapper = document.getElementById('encryptBinaryInputWrapper');
+        const encryptBinaryFileInput = document.getElementById('encryptBinaryFile');
+        const decryptBinaryOptions = document.getElementById('decryptBinaryOptions');
+        const decryptFilenameInput = document.getElementById('decryptFilename');
+        const decryptMimeInput = document.getElementById('decryptMime');
+        const decryptedOutputTextarea = document.getElementById('decrypted-output');
+        let decryptBinaryDownloadURL = null;
+
         const ensureEffWordList = async () => {
             if (effWordListPromise) {
                 return effWordListPromise;
@@ -332,6 +385,36 @@
 
             return phrase.join('-');
         }
+
+        const toggleHidden = (element, shouldHide) => {
+            if (!element) {
+                return;
+            }
+            element.classList.toggle('hidden', shouldHide);
+        };
+
+        const syncEncryptInputMode = () => {
+            const mode = document.querySelector('input[name="encryptInputMode"]:checked')?.value || 'text';
+            const isBinary = mode === 'binary';
+            if (plaintextTextarea) {
+                plaintextTextarea.classList.toggle('hidden', isBinary);
+            }
+            toggleHidden(encryptBinaryInputWrapper, !isBinary);
+            if (!isBinary && encryptBinaryFileInput) {
+                encryptBinaryFileInput.value = '';
+            }
+        };
+
+        const syncDecryptOutputMode = () => {
+            const mode = document.querySelector('input[name="decryptOutputMode"]:checked')?.value || 'text';
+            const isBinary = mode === 'binary';
+            toggleHidden(decryptBinaryOptions, !isBinary);
+            if (decryptedOutputTextarea) {
+                decryptedOutputTextarea.placeholder = isBinary
+                    ? "Binary mode selected. Status details will appear here after decryption."
+                    : "Decrypted plaintext will appear here...";
+            }
+        };
 
         // Utility to display status messages
         function updateStatus(message, isError = false) {
@@ -405,19 +488,35 @@
         async function handleEncrypt() {
             const passwordInput = document.getElementById('encrypt-password');
             const password = passwordInput.value;
-            const plaintext = document.getElementById('plaintext').value;
             const ciphertextOutput = document.getElementById('ciphertext');
+            const encryptInputMode = document.querySelector('input[name="encryptInputMode"]:checked')?.value || 'text';
+            const isBinaryInput = encryptInputMode === 'binary';
+            const plaintextValue = plaintextTextarea ? plaintextTextarea.value : '';
 
             if (!password) {
                 return updateStatus("🔑 Please enter a password phrase or click 'Generate Random Passphrase'.", true);
             }
-            if (!plaintext) {
+            if (!isBinaryInput && !plaintextValue) {
                 return updateStatus("📝 Please enter text into the plaintext field to encrypt.", true);
+            }
+            if (isBinaryInput && (!encryptBinaryFileInput || !encryptBinaryFileInput.files.length)) {
+                return updateStatus("📂 Select a file to encrypt or switch back to plaintext mode.", true);
             }
 
             try {
                 const encoder = new TextEncoder();
-                const plaintextBuffer = encoder.encode(plaintext);
+                let plaintextBuffer;
+                let binaryFileName = null;
+
+                if (isBinaryInput) {
+                    const binaryFile = encryptBinaryFileInput.files[0];
+                    const binaryData = await binaryFile.arrayBuffer();
+                    plaintextBuffer = new Uint8Array(binaryData);
+                    binaryFileName = binaryFile.name || 'binary-input';
+                } else {
+                    plaintextBuffer = encoder.encode(plaintextValue);
+                }
+
                 const passwordBuffer = encoder.encode(password);
 
                 // Generate random Salt and IV
@@ -444,7 +543,11 @@
                 const payloadBase64 = arrayBufferToBase64(payloadBuffer.buffer);
                 ciphertextOutput.value = payloadBase64;
 
-                updateStatus("🔒 Text successfully encrypted. Share the 'Encrypted Payload' AND the 'Password Phrase' with the recipient.");
+                if (isBinaryInput) {
+                    updateStatus(`🔒 File "${binaryFileName}" encrypted. Share the payload string and password phrase.`);
+                } else {
+                    updateStatus("🔒 Text successfully encrypted. Share the 'Encrypted Payload' AND the 'Password Phrase' with the recipient.");
+                }
 
             } catch (err) {
                 console.error("Encryption Error:", err);
@@ -455,8 +558,12 @@
         // 2. Decryption (For Decrypt Mode)
         async function handleDecrypt() {
             const password = document.getElementById('decrypt-password').value;
-            const payloadBase64 = document.getElementById('import-payload-input').value;
-            const decryptedOutput = document.getElementById('decrypted-output');
+            const payloadInput = document.getElementById('import-payload-input');
+            const payloadBase64Raw = payloadInput.value;
+            const payloadBase64 = payloadBase64Raw.trim();
+            const decryptedOutput = decryptedOutputTextarea;
+            const outputMode = document.querySelector('input[name="decryptOutputMode"]:checked')?.value || 'text';
+            const isBinaryOutput = outputMode === 'binary';
 
             if (!password) {
                 return updateStatus("🔑 Please enter the password phrase.", true);
@@ -465,10 +572,15 @@
                 return updateStatus("🚫 Please provide the Encrypted Payload.", true);
             }
 
+            if (decryptedOutput) {
+                decryptedOutput.value = '';
+            }
+
             try {
                 const encoder = new TextEncoder();
                 const passwordBuffer = encoder.encode(password);
-                const payloadBuffer = base64ToArrayBuffer(payloadBase64);
+                const sanitizedPayload = payloadBase64.replace(/\s+/g, '');
+                const payloadBuffer = base64ToArrayBuffer(sanitizedPayload);
 
                 // Check minimum length (Salt + IV)
                 if (payloadBuffer.byteLength < SALT_BYTES + IV_BYTES) {
@@ -490,16 +602,40 @@
                     ciphertextBuffer
                 );
 
-                // Decode the result to a string
-                const decoder = new TextDecoder();
-                const decryptedText = decoder.decode(decryptedBuffer);
+                if (decryptBinaryDownloadURL) {
+                    URL.revokeObjectURL(decryptBinaryDownloadURL);
+                    decryptBinaryDownloadURL = null;
+                }
 
-                decryptedOutput.value = decryptedText;
-                updateStatus("🔓 Data successfully decrypted back to plaintext.");
+                if (isBinaryOutput) {
+                    const filename = (decryptFilenameInput?.value?.trim()) || 'decrypted.bin';
+                    const mime = (decryptMimeInput?.value?.trim()) || 'application/octet-stream';
+                    const blob = new Blob([decryptedBuffer], { type: mime });
+                    decryptBinaryDownloadURL = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = decryptBinaryDownloadURL;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    if (decryptedOutput) {
+                        decryptedOutput.value = `Binary output ready: ${filename} (${mime}).`;
+                    }
+                    updateStatus(`🔓 Data decrypted. Download started as ${filename}.`);
+                } else {
+                    const decoder = new TextDecoder();
+                    const decryptedText = decoder.decode(decryptedBuffer);
+                    if (decryptedOutput) {
+                        decryptedOutput.value = decryptedText;
+                    }
+                    updateStatus("🔓 Data successfully decrypted back to plaintext.");
+                }
 
             } catch (err) {
                 console.error("Decryption Error:", err);
-                decryptedOutput.value = "--- FAILED TO DECRYPT ---";
+                if (decryptedOutput) {
+                    decryptedOutput.value = "--- FAILED TO DECRYPT ---";
+                }
                 updateStatus("❌ Decryption failed! The Password Phrase or Payload is incorrect, or the data was tampered with (Authentication Tag mismatch). " + err.message, true);
             }
         }
@@ -530,10 +666,27 @@
             const copyPassphraseBtn = document.getElementById('copyPassphraseBtn'); // New button reference
             const encryptPasswordInput = document.getElementById('encrypt-password');
             const wordListModeSelect = document.getElementById('wordListMode');
+            const encryptInputModeRadios = document.querySelectorAll('input[name="encryptInputMode"]');
+            const decryptOutputModeRadios = document.querySelectorAll('input[name="decryptOutputMode"]');
 
             // Setup Password Toggles
             setupPasswordToggle('encrypt-password', 'toggleEncryptPassword');
             setupPasswordToggle('decrypt-password', 'toggleDecryptPassword');
+
+            encryptInputModeRadios.forEach((radio) => {
+                radio.addEventListener('change', syncEncryptInputMode);
+            });
+
+            decryptOutputModeRadios.forEach((radio) => {
+                radio.addEventListener('change', syncDecryptOutputMode);
+            });
+
+            if (decryptFilenameInput && !decryptFilenameInput.value) {
+                decryptFilenameInput.value = 'decrypted.bin';
+            }
+
+            syncEncryptInputMode();
+            syncDecryptOutputMode();
 
             const switchWordListMode = async (mode) => {
                 if (mode === 'eff') {
