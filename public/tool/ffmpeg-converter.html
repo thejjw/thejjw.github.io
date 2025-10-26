@@ -629,6 +629,7 @@
       if (bitrateLabel) {
         bitrateLabel.style.display = isCrfMode ? "none" : "flex";
       }
+      videoCrfEl.disabled = !isCrfMode;
       crfFieldEl.hidden = !isCrfMode;
       if (isCrfMode) {
         applyCrfDefaultIfNeeded();
