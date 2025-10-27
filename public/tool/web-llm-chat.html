@@ -106,6 +106,25 @@
       background-color: #0056b3;
     }
 
+    .model-info {
+      margin-bottom: 18px;
+      padding: 12px 16px;
+      border: 1px solid #ccd4db;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #f9fbfc 0%, #f2f5f8 100%);
+      color: #2c3237;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.12);
+    }
+
+    .model-info strong {
+      font-weight: 600;
+    }
+
+    .model-info span {
+      font-weight: 500;
+    }
+
     .hidden {
       display: none;
     }
@@ -146,6 +165,12 @@
   </div>
   <p id="download-status" class="hidden"></p>
 
+  <div id="model-info" class="model-info hidden">
+    <p><strong>VRAM Required:</strong> <span id="model-vram"></span></p>
+    <p><strong>Low Resource Mode:</strong> <span id="model-low-resource"></span></p>
+    <p><strong>Context Window:</strong> <span id="model-context-window"></span></p>
+  </div>
+
   <p>
     Step 2: Chat
   </p>
@@ -180,6 +205,19 @@
     );
     let selectedModel = "Qwen3-0.6B-q4f32_1-MLC"; // "Llama-3-8B-Instruct-q4f32_1-MLC-1k";
 
+    const modelMetadataMap = new Map(
+      webllm.prebuiltAppConfig.model_list.map((modelConfig) => [
+        modelConfig.model_id,
+        modelConfig,
+      ]),
+    );
+
+    const modelSelection = document.getElementById("model-selection");
+    const modelInfo = document.getElementById("model-info");
+    const modelVram = document.getElementById("model-vram");
+    const modelLowResource = document.getElementById("model-low-resource");
+    const modelContextWindow = document.getElementById("model-context-window");
+
     // Callback function for initializing progress
     function updateEngineInitProgressCallback(report) {
       console.log("initialize", report.progress);
@@ -192,8 +230,48 @@
     const engine = new webllm.MLCEngine();
     engine.setInitProgressCallback(updateEngineInitProgressCallback);
 
+    function updateModelInfoPanel(modelId) {
+      const modelConfig = modelMetadataMap.get(modelId);
+      if (!modelConfig) {
+        modelInfo.classList.add("hidden");
+        modelVram.textContent = "Unknown";
+        modelLowResource.textContent = "Unknown";
+        modelContextWindow.textContent = "Unknown";
+        return;
+      }
+
+      modelInfo.classList.remove("hidden");
+
+      const vramValue =
+        typeof modelConfig.vram_required_MB === "number" &&
+        Number.isFinite(modelConfig.vram_required_MB)
+          ? `${modelConfig.vram_required_MB.toLocaleString(undefined, {
+              maximumFractionDigits: 2,
+            })} MB`
+          : "Unknown";
+      modelVram.textContent = vramValue;
+
+      const lowResource = modelConfig.low_resource_required;
+      let lowResourceValue = "Unknown";
+      if (lowResource === true) {
+        lowResourceValue = "Yes";
+      } else if (lowResource === false) {
+        lowResourceValue = "No";
+      }
+      modelLowResource.textContent = lowResourceValue;
+
+      const contextWindowSize = modelConfig.overrides?.context_window_size;
+      const contextWindowValue =
+        typeof contextWindowSize === "number" &&
+        Number.isFinite(contextWindowSize)
+          ? `${contextWindowSize.toLocaleString()} tokens`
+          : "Unknown";
+      modelContextWindow.textContent = contextWindowValue;
+    }
+
     async function initializeWebLLMEngine() {
-      selectedModel = document.getElementById("model-selection").value;
+      selectedModel = modelSelection.value;
+      updateModelInfoPanel(selectedModel);
       const config = {
         temperature: 1.0,
         top_p: 1,
@@ -298,9 +376,14 @@
       const option = document.createElement("option");
       option.value = modelId;
       option.textContent = modelId;
-      document.getElementById("model-selection").appendChild(option);
+      modelSelection.appendChild(option);
     });
-    document.getElementById("model-selection").value = selectedModel;
+    modelSelection.value = selectedModel;
+    updateModelInfoPanel(selectedModel);
+    modelSelection.addEventListener("change", function (event) {
+      selectedModel = event.target.value;
+      updateModelInfoPanel(selectedModel);
+    });
     document.getElementById("download").addEventListener("click", function () {
       initializeWebLLMEngine().then(() => {
         document.getElementById("send").disabled = false;
