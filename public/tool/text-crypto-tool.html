@@ -792,8 +792,6 @@
                 try {
                     const phrase = generatePassphrase();
                     encryptPasswordInput.value = phrase;
-                    encryptPasswordInput.type = 'text'; // Automatically reveal the generated phrase
-                    document.getElementById('toggleEncryptPassword').textContent = 'Hide';
                     updateStatus(`Generated new passphrase: ${phrase}. REMEMBER or copy this phrase to share!`);
                 } catch (error) {
                     console.error('Passphrase generation error:', error);
