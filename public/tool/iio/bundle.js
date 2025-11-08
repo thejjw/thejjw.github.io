@@ -37489,10 +37489,25 @@ function renderMedia (file, getElem, opts, cb) {
         debug('File extension "%s" appears ascii, so will render.', extname)
         renderIframe()
       } else {
-        debug('File extension "%s" appears non-ascii, will not render.', extname)
-        cb(new Error(`Unsupported file type "${extname}": Cannot append to DOM`))
+        debug('File extension "%s" appears non-ascii, triggering download instead.', extname)
+        renderDownload()
       }
     }
+  }
+
+  function renderDownload () {
+    getBlobURL(file, (err, url) => {
+      if (err) return fatalError(err)
+
+      const a = document.createElement('a')
+      a.target = '_blank'
+      a.download = file.name
+      a.href = url
+      a.textContent = 'Download ' + file.name
+      a.style.display = 'block'
+      a.style.marginTop = '10px'
+      cb(null, a)
+    })
   }
 
   function fatalError (err) {
