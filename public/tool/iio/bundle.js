@@ -37463,12 +37463,25 @@ function renderMedia (file, getElem, opts, cb) {
     debug('Unknown file extension "%s" - will attempt to render into iframe', extname)
 
     let str = ''
+    const textDecoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8') : null
     file.createReadStream({ start: 0, end: 1000 })
-      .setEncoding('utf8')
       .on('data', chunk => {
-        str += chunk
+        if (typeof chunk === 'string') {
+          str += chunk
+        } else if (chunk instanceof ArrayBuffer && textDecoder) {
+          str += textDecoder.decode(new Uint8Array(chunk), { stream: true })
+        } else if (textDecoder && (chunk instanceof Uint8Array || (ArrayBuffer.isView && ArrayBuffer.isView(chunk)))) {
+          str += textDecoder.decode(chunk, { stream: true })
+        } else if (chunk && typeof chunk.toString === 'function') {
+          str += chunk.toString('utf8')
+        }
       })
-      .on('end', done)
+      .on('end', () => {
+        if (textDecoder) {
+          str += textDecoder.decode()
+        }
+        done()
+      })
       .on('error', cb)
 
     function done () {
