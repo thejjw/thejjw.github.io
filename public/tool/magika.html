@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magika Static Analyzer</title>
+    <link
+      rel="icon"
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="%230b1526"/><path d="M18 44c8-6 20-6 28 0M14 20c4 8 12 12 18 12s14-4 18-12" stroke="%235bd7ff" stroke-width="4" fill="none" stroke-linecap="round"/></svg>'
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background-color: #060a12;
+        color: #e7ecf7;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: radial-gradient(circle at top, #1a2b43, #05070c 70%);
+      }
+
+      main {
+        width: min(900px, 100%);
+        background: rgba(10, 16, 28, 0.92);
+        border-radius: 22px;
+        padding: 2.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 12px 60px rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+      }
+
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+      }
+
+      p.description {
+        margin: 0 0 1.5rem;
+        color: #b8c4d9;
+      }
+
+      .mode-switch {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .mode-switch button {
+        flex: 1;
+        padding: 0.85rem 1.25rem;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 180ms ease;
+      }
+
+      .mode-switch button.active {
+        background: linear-gradient(130deg, #5dd6ff, #7c4dff);
+        border-color: transparent;
+        box-shadow: 0 6px 25px rgba(89, 191, 255, 0.45);
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(11, 17, 30, 0.9);
+        color: inherit;
+        padding: 1rem;
+        font-size: 1rem;
+        resize: vertical;
+      }
+
+      input[type="file"] {
+        width: 100%;
+        padding: 1.25rem;
+        border-radius: 16px;
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+        background: rgba(15, 22, 36, 0.6);
+        color: inherit;
+        cursor: pointer;
+      }
+
+      .file-note {
+        margin-top: 0.65rem;
+        font-size: 0.9rem;
+        color: #9fb0ca;
+      }
+
+      .actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 1rem;
+      }
+
+      button.analyze {
+        padding: 0.9rem 2rem;
+        border-radius: 14px;
+        border: none;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(120deg, #46c8ff, #9a5bff);
+        color: #fff;
+        min-width: 180px;
+        transition: opacity 150ms ease, transform 120ms ease;
+      }
+
+      button.analyze:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button.analyze:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+
+      #status {
+        flex: 1;
+        color: #9fb0ca;
+      }
+
+      #results {
+        padding: 1.5rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      #results[hidden] {
+        display: none;
+      }
+
+      #results .label {
+        font-size: 1.6rem;
+        font-weight: 700;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .meta div {
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        background: rgba(8, 14, 26, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      pre {
+        margin-top: 0.75rem;
+        background: #05070c;
+        border-radius: 16px;
+        padding: 1rem;
+        overflow: auto;
+        font-size: 0.9rem;
+        max-height: 220px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .top-predictions {
+        margin-top: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.25rem;
+        background: rgba(8, 12, 22, 0.8);
+      }
+
+      .top-predictions h3 {
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        letter-spacing: 0.04em;
+        color: #a9b8d1;
+        text-transform: uppercase;
+      }
+
+      .top-predictions ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .top-predictions li {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.6rem 0.9rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        font-size: 0.95rem;
+      }
+
+      .top-predictions li.primary {
+        background: rgba(83, 206, 255, 0.12);
+        border: 1px solid rgba(83, 206, 255, 0.3);
+      }
+
+      .json-actions {
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .copy-btn {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: transparent;
+        color: inherit;
+        border-radius: 10px;
+        padding: 0.45rem 0.9rem;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 150ms ease, border 150ms ease;
+      }
+
+      .copy-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+
+      .copy-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "magika": "./lib/magika/magika/magika.js",
+          "magika/": "./lib/magika/magika/",
+          "@tensorflow/tfjs": "./lib/magika/@tensorflow/tfjs/dist/index.js",
+          "@tensorflow/tfjs/*": "./lib/magika/@tensorflow/tfjs/dist/*.js",
+          "@tensorflow/tfjs-core": "./lib/magika/@tensorflow/tfjs-core/dist/index.js",
+          "@tensorflow/tfjs-core/*": "./lib/magika/@tensorflow/tfjs-core/dist/*.js",
+          "@tensorflow/tfjs-core/dist/*": "./lib/magika/@tensorflow/tfjs-core/dist/*.js",
+          "@tensorflow/tfjs-backend-cpu": "./lib/magika/@tensorflow/tfjs-backend-cpu/dist/index.js",
+          "@tensorflow/tfjs-backend-cpu/*": "./lib/magika/@tensorflow/tfjs-backend-cpu/dist/*.js",
+          "@tensorflow/tfjs-backend-webgl": "./lib/magika/@tensorflow/tfjs-backend-webgl/dist/index.js",
+          "@tensorflow/tfjs-backend-webgl/*": "./lib/magika/@tensorflow/tfjs-backend-webgl/dist/*.js",
+          "@tensorflow/tfjs-converter": "./lib/magika/@tensorflow/tfjs-converter/dist/index.js",
+          "@tensorflow/tfjs-converter/*": "./lib/magika/@tensorflow/tfjs-converter/dist/*.js",
+          "@tensorflow/tfjs-data": "./lib/magika/@tensorflow/tfjs-data/dist/index.js",
+          "@tensorflow/tfjs-data/*": "./lib/magika/@tensorflow/tfjs-data/dist/*.js",
+          "@tensorflow/tfjs-layers": "./lib/magika/@tensorflow/tfjs-layers/dist/index.js",
+          "@tensorflow/tfjs-layers/*": "./lib/magika/@tensorflow/tfjs-layers/dist/*.js",
+          "seedrandom": "./lib/magika/seedrandom/index.js",
+          "seedrandom/": "./lib/magika/seedrandom/",
+          "long": "./lib/magika/long/dist/long.js",
+          "long/": "./lib/magika/long/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script src="./lib/magika/@tensorflow/tfjs/dist/tf.min.js"></script>
+    <main>
+      <h1>Magika Static Analyzer</h1>
+      <p class="description">
+        <a
+          href="https://github.com/google/magika"
+          target="_blank"
+          rel="noreferrer"
+          >Magika</a
+        >
+        is a novel AI-powered file type detection tool that relies on the recent
+        advance of deep learning to provide accurate detection. Run it locally
+        in your browser—start with a text snippet or inspect files without
+        sending their contents anywhere.
+      </p>
+
+      <div class="mode-switch">
+        <button data-mode="text" class="active">Text snippet</button>
+        <button data-mode="file">File upload</button>
+      </div>
+
+      <section class="panel" id="text-panel">
+        <label for="text-input">Paste text to classify</label>
+        <textarea id="text-input" spellcheck="false">
+#!/usr/bin/env python3
+import os
+print(os.uname())
+</textarea
+        >
+      </section>
+
+      <section class="panel" id="file-panel" hidden>
+        <label for="file-input">Choose a file</label>
+        <input type="file" id="file-input" />
+        <p class="file-note">Supports files up to 1000 MB.</p>
+      </section>
+
+      <div class="actions">
+        <button class="analyze" id="analyze-btn">Analyze</button>
+        <div id="status">
+          <span id="status-message">Model not loaded yet.</span>
+          <span style="display: block; margin-top: 0.25rem"
+            >Current model: <strong id="model-name">unknown</strong></span
+          >
+          <a
+            id="model-readme-link"
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+            style="font-size: 0.85rem; color: #71c6ff; display: none"
+            >View supported extensions</a
+          >
+        </div>
+      </div>
+
+      <section id="results" hidden>
+        <div class="label" id="result-label"></div>
+        <div class="meta">
+          <div><strong>Confidence</strong><br /><span id="result-score"></span></div>
+          <div><strong>Family</strong><br /><span id="result-family"></span></div>
+          <div><strong>Content type</strong><br /><span id="result-type"></span></div>
+          <div><strong>Source</strong><br /><span id="result-source"></span></div>
+        </div>
+        <div class="top-predictions" id="top-predictions" hidden>
+          <h3>Top predictions</h3>
+          <ol id="top-predictions-list"></ol>
+        </div>
+        <div class="json-actions">
+          <button class="copy-btn" id="copy-json-btn" disabled>Copy JSON</button>
+        </div>
+        <pre id="result-raw"></pre>
+      </section>
+
+      <footer
+        style="
+          margin-top: 2rem;
+          font-size: 0.85rem;
+          color: #9fb0ca;
+          text-align: center;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          padding-top: 1rem;
+        "
+      >
+        Using @google/magika • All processing, aside from model download, done
+        locally in browser.<br />
+        Operation availability depends on google.github.io/magika resource.<br />
+        @thejjw • 2025.11.
+      </footer>
+    </main>
+
+    <script type="module">
+      import { Magika } from "magika";
+
+      const MAX_FILE_SIZE_MB = 1000;
+      const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+      const modeButtons = document.querySelectorAll(".mode-switch button");
+      const textPanel = document.getElementById("text-panel");
+      const filePanel = document.getElementById("file-panel");
+      const textInput = document.getElementById("text-input");
+      const fileInput = document.getElementById("file-input");
+      const analyzeBtn = document.getElementById("analyze-btn");
+      const statusMessageEl = document.getElementById("status-message");
+      const modelNameEl = document.getElementById("model-name");
+      const modelReadmeLink = document.getElementById("model-readme-link");
+      const resultsSection = document.getElementById("results");
+      const resultLabel = document.getElementById("result-label");
+      const resultScore = document.getElementById("result-score");
+      const resultFamily = document.getElementById("result-family");
+      const resultType = document.getElementById("result-type");
+      const resultSource = document.getElementById("result-source");
+      const resultRaw = document.getElementById("result-raw");
+      const topPredictions = document.getElementById("top-predictions");
+      const topPredictionsList = document.getElementById("top-predictions-list");
+      const copyJsonBtn = document.getElementById("copy-json-btn");
+
+      let currentMode = "text";
+      let magika;
+      let loadingPromise;
+
+      const setMode = (mode) => {
+        currentMode = mode;
+        modeButtons.forEach((btn) =>
+          btn.classList.toggle("active", btn.dataset.mode === mode),
+        );
+        textPanel.hidden = mode !== "text";
+        filePanel.hidden = mode !== "file";
+        resultsSection.hidden = true;
+        copyJsonBtn.disabled = true;
+        statusMessageEl.textContent =
+          mode === "text"
+            ? "Enter some text and run the analysis."
+            : "Pick a file to get started.";
+      };
+
+      modeButtons.forEach((btn) =>
+        btn.addEventListener("click", () => setMode(btn.dataset.mode)),
+      );
+
+      const ensureMagika = async () => {
+        if (magika) return magika;
+        if (!loadingPromise) {
+          statusMessageEl.textContent = "Loading Magika model...";
+          analyzeBtn.disabled = true;
+          loadingPromise = Magika.create();
+        }
+        magika = await loadingPromise;
+        analyzeBtn.disabled = false;
+        modelNameEl.textContent = magika.getModelName();
+        const modelVersion = magika.getModelName();
+        if (modelVersion) {
+          modelReadmeLink.href = `https://github.com/google/magika/blob/main/assets/models/${modelVersion}/README.md`;
+          modelReadmeLink.style.display = "inline-block";
+        } else {
+          modelReadmeLink.style.display = "none";
+        }
+        statusMessageEl.textContent =
+          currentMode === "text"
+            ? "Model ready. Run the text snippet."
+            : "Model ready. Choose a file to analyze.";
+        return magika;
+      };
+
+      const buildBytes = async () => {
+        if (currentMode === "text") {
+          const value = textInput.value.trim();
+          if (!value) throw new Error("Please paste some text.");
+          return {
+            source: "Text snippet",
+            bytes: new TextEncoder().encode(value),
+          };
+        }
+        const file = fileInput.files?.[0];
+        if (!file) throw new Error("Choose a file first.");
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          throw new Error(
+            `File exceeds ${MAX_FILE_SIZE_MB} MB limit (${file.size.toLocaleString()} bytes).`,
+          );
+        }
+        return {
+          source: file.name,
+          bytes: new Uint8Array(await file.arrayBuffer()),
+          file,
+        };
+      };
+
+      const showResult = (source, magikaResult) => {
+        const { prediction, status } = magikaResult;
+        const label = prediction.output?.label ?? "Unknown";
+        resultLabel.textContent = label;
+        resultScore.textContent = `${(prediction.score * 100).toFixed(2)}%`;
+        resultFamily.textContent = prediction.dl?.label ?? "n/a";
+        resultType.textContent = prediction.output?.is_text ? "text" : "binary";
+        resultSource.textContent = source;
+        let scoresEntries = Object.entries(prediction.scores_map ?? {}).filter(
+          (entry) => typeof entry[1] === "number",
+        );
+        if (
+          !scoresEntries.some(([lbl]) => lbl === label) &&
+          typeof prediction.score === "number"
+        ) {
+          scoresEntries = [[label, prediction.score], ...scoresEntries];
+        }
+        scoresEntries.sort((a, b) => b[1] - a[1]);
+        const topThree = scoresEntries.slice(0, 3);
+        topPredictionsList.innerHTML = "";
+        topThree.forEach(([lbl, score], index) => {
+          const li = document.createElement("li");
+          if (index === 0) li.classList.add("primary");
+          li.innerHTML = `<span>${lbl}</span><span>${(score * 100).toFixed(2)}%</span>`;
+          topPredictionsList.appendChild(li);
+        });
+        topPredictions.hidden = topThree.length === 0;
+        resultRaw.textContent = JSON.stringify(
+          { status, prediction },
+          null,
+          2,
+        );
+        resultsSection.hidden = false;
+        copyJsonBtn.disabled = false;
+      };
+
+      analyzeBtn.addEventListener("click", async () => {
+        try {
+          const magikaInstance = await ensureMagika();
+          const { source, bytes } = await buildBytes();
+          statusMessageEl.textContent = `Analyzing ${source}...`;
+          analyzeBtn.disabled = true;
+          const result = await magikaInstance.identifyBytes(bytes);
+          statusMessageEl.textContent = "Analysis done.";
+          showResult(source, result);
+        } catch (error) {
+          console.error(error);
+          resultsSection.hidden = true;
+          statusMessageEl.textContent = `Error: ${error.message}`;
+          copyJsonBtn.disabled = true;
+        } finally {
+          analyzeBtn.disabled = false;
+        }
+      });
+
+      copyJsonBtn.addEventListener("click", async () => {
+        copyJsonBtn.disabled = true;
+        const original = copyJsonBtn.textContent;
+        try {
+          await navigator.clipboard.writeText(resultRaw.textContent);
+          copyJsonBtn.textContent = "Copied!";
+        } catch (error) {
+          console.error("Copy failed", error);
+          copyJsonBtn.textContent = "Copy failed";
+        } finally {
+          setTimeout(() => {
+            copyJsonBtn.disabled = false;
+            copyJsonBtn.textContent = original;
+          }, 1200);
+        }
+      });
+
+      setMode("text");
+    </script>
+  </body>
+</html>
