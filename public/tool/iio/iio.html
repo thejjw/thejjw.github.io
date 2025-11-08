@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eee">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Instant.io - Streaming file transfer over WebTorrent</title>
+  <link rel="search" href="/opensearch.xml" title="Instant.io" type="application/opensearchdescription+xml">
+  <link rel="stylesheet" href="/main.css" charset="utf-8">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/favicon.ico">
+</head>
+
+<body>
+  <main>
+    <picture class="logo">
+      <source srcset="/logo.svg">
+      <img src="/logo.png" alt="Instant.io">
+    </picture>
+    <p class="subtitle">
+      Streaming file transfer over <a href="http://webtorrent.io" target="_blank" rel="noreferrer">WebTorrent</a>
+      (torrents on the web)
+    </p>
+
+    <h1 id="logHeading" style="display: none">Log</h1>
+    <div class="speed"></div>
+    <div class="log"></div>
+
+    <section>
+      <h1>Start sharing</h1>
+      <p>
+        Drag-and-drop files to begin seeding. Or choose a file:
+        <input type="file" name="upload" multiple>
+      </p>
+    </section>
+
+    <section>
+      <h1>Start downloading</h1>
+      <form>
+        <label for="torrentId">Download from a magnet link or info hash</label>
+        <input name="torrentId" id="torrentId" placeholder="magnet:" required>
+        <button type="submit">Download</button>
+      </form>
+    </section>
+
+    <footer>
+      <p>
+        Using @webtorrent/instant.io • Depends on Google STUN service<br>
+        <a href="https://jjw.is-a.dev" target="_blank">@thejjw</a> • 2025.11
+      </p>
+    </footer>
+  </main>
+
+  <script src="/bundle.js"></script>
+</body>
+
+</html>
