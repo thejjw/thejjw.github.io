@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Always include everything under public/tool/ and public/custom/
+!public/tool/**
+!public/custom/**
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
