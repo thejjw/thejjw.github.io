@@ -792,7 +792,7 @@
                 try {
                     const phrase = generatePassphrase();
                     encryptPasswordInput.value = phrase;
-                    updateStatus(`Generated new passphrase: ${phrase}. REMEMBER or copy this phrase to share!`);
+                    updateStatus(`Generated new passphrase. Use 'Show' to reveal or 'Copy' to copy it.`);
                 } catch (error) {
                     console.error('Passphrase generation error:', error);
                     updateStatus(`❌ Failed to generate passphrase: ${error.message}`, true);
