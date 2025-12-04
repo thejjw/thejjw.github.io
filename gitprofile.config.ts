@@ -104,10 +104,17 @@ const CONFIG = {
   ],
   experiences: [
     {
+      company: 'z3soft',
+      position: 'Senior Manager (Sr. Engineer)',
+      from: 'December 2025',
+      to: 'Present',
+      companyLink: 'https://z3soft.com',
+    },
+    {
       company: 'Securelink',
       position: 'Manager (Engineer)',
       from: 'April 2021',
-      to: 'Present',
+      to: 'November 2025',
       companyLink: 'https://www.securelink.co.kr',
     },
     {
