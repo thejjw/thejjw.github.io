@@ -218,7 +218,11 @@ function normalizeResult(result, kind) {
     imdbId: stringValue(result.imdbid),
     posterUrl: stringValue(result.poster),
     boxartUrl: stringValue(result.img),
-    genres: []
+    genres: [],
+    // Extra fields available for free in the same search response.
+    rating: numberValue(result.avgrating),
+    top250: numberValue(result.top250),
+    top250tv: numberValue(result.top250tv)
   };
 
   if (kind === "expiring") {
@@ -335,6 +339,12 @@ function formatRuntime(value) {
 // Converts nullish values to the empty string for stable JSON fields.
 function stringValue(value) {
   return value === null || value === undefined ? "" : String(value);
+}
+
+// Converts nullable values to a finite number, defaulting to 0.
+function numberValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
 }
 
 // Converts date-like strings to comparable timestamps with empty dates last.

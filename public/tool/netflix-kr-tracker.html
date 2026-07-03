@@ -337,6 +337,16 @@
       color: #a8f3e5;
     }
 
+    .rating-chip {
+      background: rgba(231, 183, 95, 0.18);
+      color: #f4d58d;
+    }
+
+    .top250-chip {
+      background: rgba(106, 168, 255, 0.16);
+      color: #bcd6ff;
+    }
+
     .synopsis {
       margin: 0;
       color: var(--muted);
@@ -590,7 +600,10 @@
           expiryText: stringValue(item.expiryText),
           addedDate: stringValue(item.addedDate),
           addedText: stringValue(item.addedText),
-          collectedAt: stringValue(item.collectedAt)
+          collectedAt: stringValue(item.collectedAt),
+          rating: numberValue(item.rating),
+          top250: numberValue(item.top250),
+          top250tv: numberValue(item.top250tv)
         }))
       };
     }
@@ -735,6 +748,10 @@
       addChip(chips, item.type);
       addChip(chips, item.year);
       addChip(chips, item.runtime);
+      // Rating and IMDb Top 250 rank come free from the search response; hide when absent.
+      if (item.rating > 0) addChip(chips, "★ " + item.rating.toFixed(1), "rating-chip");
+      const top250 = item.top250 || item.top250tv;
+      if (top250 > 0) addChip(chips, "IMDb Top 250 #" + top250, "top250-chip");
       item.genres.slice(0, 3).forEach((genre) => addChip(chips, genre));
 
       return chips;
