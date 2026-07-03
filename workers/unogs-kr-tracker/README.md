@@ -12,13 +12,31 @@ npm install
 The checked-in `wrangler.jsonc` is already bound to the `SNAPSHOTS` KV namespace for this account.
 If you recreate the namespace, run `npx wrangler kv namespace create SNAPSHOTS` and replace the `id` in `wrangler.jsonc`.
 
-Optional refresh protection:
+## Manual Refresh Token
+
+`/api/refresh` is protected by the `REFRESH_TOKEN` Worker secret when it is configured. This is a per-Worker secret for `unogs-kr-tracker`, not an account-wide secret. Wrangler and the Cloudflare dashboard can show that the secret exists, but they do not reveal its value after it is set.
+
+Set or rotate the token with Wrangler's interactive prompt:
 
 ```powershell
 npx wrangler secret put REFRESH_TOKEN
 ```
 
-If `REFRESH_TOKEN` is not configured, `/api/refresh` remains callable and returns a warning in its JSON response.
+Store the value in a password manager if you want to reuse it. If the value is lost, rotate it to a new random value, call `/api/refresh` once, and either save the new value or let it remain write-only. `wrangler secret put` creates a new Worker version and deploys it immediately.
+
+List configured secret names:
+
+```powershell
+npx wrangler secret list
+```
+
+Call production refresh with the token:
+
+```powershell
+Invoke-RestMethod "https://unogs-kr-tracker.thejjw.workers.dev/api/refresh" -Headers @{ Authorization = "Bearer <token>" }
+```
+
+If `REFRESH_TOKEN` is not configured, `/api/refresh` remains publicly callable and returns a warning in its JSON response.
 
 ## Local Development
 
