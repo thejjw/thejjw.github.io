@@ -747,7 +747,8 @@
       addChip(chips, dateText, state.mode === "expiring" ? "date-chip" : "new-chip");
       addChip(chips, item.type);
       addChip(chips, item.year);
-      addChip(chips, item.runtime);
+      // Runtime arrives as "--" when unknown; hide it like the other absent fields.
+      if (item.runtime && item.runtime !== "--") addChip(chips, item.runtime);
       // Rating and IMDb Top 250 rank come free from the search response; hide when absent.
       if (item.rating > 0) addChip(chips, "★ " + item.rating.toFixed(1), "rating-chip");
       const top250 = item.top250 || item.top250tv;
