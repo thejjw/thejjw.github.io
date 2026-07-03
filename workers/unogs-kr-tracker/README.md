@@ -41,7 +41,7 @@ If `REFRESH_TOKEN` is not configured, `/api/refresh` remains publicly callable a
 ## Local Development
 
 ```powershell
-Set-Location C:\temp\ag\mint-small-shadow\thejjw.github.io\workers\unogs-kr-tracker
+Set-Location .\thejjw.github.io\workers\unogs-kr-tracker
 npx wrangler dev --test-scheduled
 ```
 
@@ -73,7 +73,7 @@ Invoke-RestMethod "http://localhost:8787/cdn-cgi/handler/scheduled"
 ## Deploy
 
 ```powershell
-Set-Location C:\temp\ag\mint-small-shadow\thejjw.github.io\workers\unogs-kr-tracker
+Set-Location .\thejjw.github.io\workers\unogs-kr-tracker
 npx wrangler deploy --dry-run
 npx wrangler deploy
 ```
