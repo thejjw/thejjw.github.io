@@ -142,3 +142,49 @@ are **not** in `/api/search` — they came from **two extra per-title calls**,
 subrequests for an N-title list. The Cloudflare **free plan caps a Worker invocation at 50
 subrequests**, so that fan-out is not viable here (the "new" list alone is up to 100 titles).
 Treat these fields as off-limits unless the plan changes or the calls are batched.
+
+## The "expiring" query and country codes
+
+`query=expiring` returns titles that are **imminently** leaving (roughly the next week), not
+every title flagged as expiring. It is a normal `/api/search` call, so each result has the
+same schema as above **plus** a populated `expires` date (e.g. `2026-07-08`) and a populated
+`clist` (country availability). `rating` / `top250` / `top250tv` apply here too — the Worker's
+`normalizeResult()` adds them in both modes.
+
+South Korea (`countrylist=348`) frequently has **0** imminent-expiring titles even though the
+per-country `expiring` counter (see below) is ~30; that counter is a broader total, not the
+imminent list. To see non-empty expiring data for testing, use a busier country such as
+Australia (`23`), Japan (`267`), or the UK (`46`).
+
+### Country reference endpoint
+
+`GET https://unogs.com/api/static/all` (Bearer auth, cached, cheap) returns
+`{ adinfo, countries, clist, languages }`. `countries.results[]` maps each country to its
+numeric `id` — the value the `countrylist` search param expects — along with a live
+`expiring` count, `nl7` (new in last 7 days), and catalog totals (`tmovs`, `tseries`, `tvids`).
+
+Numeric `countrylist` codes (from `api/static/all`, verified 2026-07-03):
+
+| Code | Country | Code | Country | Code | Country |
+|---|---|---|---|---|---|
+| 21 | Argentina | 269 | Italy | 392 | Poland |
+| 23 | Australia | 267 | Japan | 268 | Portugal |
+| 26 | Belgium | 357 | Lithuania | 400 | Romania |
+| 29 | Brazil | 378 | Malaysia | 408 | Singapore |
+| 33 | Canada | 65 | Mexico | 412 | Slovakia |
+| 36 | Colombia | 67 | Netherlands | 447 | South Africa |
+| 307 | Czech Republic | 390 | Philippines | **348** | **South Korea** |
+| 45 | France | 270 | Spain | 73 | Sweden |
+| 39 | Germany | 34 | Switzerland | 425 | Thailand |
+| 327 | Greece | 432 | Turkey | 436 | Ukraine |
+| 331 | Hong Kong | 46 | United Kingdom | 78 | United States |
+| 334 | Hungary | 265 | Iceland | 337 | India |
+| 336 | Israel | | | | |
+
+Note: the unogs.com **site UI** uses ISO-2 codes (`kr`, `au`) in its dropdown, but the
+**API** uses these numeric ids.
+
+> **Throttling gotcha.** uNoGS rate-limits rapid `POST /api/user` token minting: after a burst,
+> freshly minted tokens return **empty** `results` (count 0) for every search, which looks
+> exactly like "no data." When probing manually, mint one token and reuse it, space out calls,
+> and cross-check against the live site before concluding a query is broken.
