@@ -9,6 +9,6 @@
     "dev": "wrangler dev --test-scheduled"
   },
   "devDependencies": {
-    "wrangler": "latest"
+    "wrangler": "^4.107.0"
   }
 }

@@ -3,6 +3,7 @@
   "name": "unogs-kr-tracker",
   "main": "src/index.js",
   "compatibility_date": "2026-07-03",
+  "workers_dev": true,
   "observability": {
     "enabled": true
   },
@@ -14,9 +15,7 @@
   "kv_namespaces": [
     {
       "binding": "SNAPSHOTS",
-      // Replace this placeholder with the id returned by:
-      // npx wrangler kv namespace create SNAPSHOTS
-      "id": "00000000000000000000000000000000"
+      "id": "859f2d3507704740b729c9dca69a43a2"
     }
   ],
   "vars": {

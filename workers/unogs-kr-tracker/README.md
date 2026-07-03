@@ -7,10 +7,10 @@ Cloudflare Worker that scrapes uNoGS South Korea (`countrylist=348`) for Netflix
 ```powershell
 Set-Location C:\temp\ag\mint-small-shadow\thejjw.github.io\workers\unogs-kr-tracker
 npm install
-npx wrangler kv namespace create SNAPSHOTS
 ```
 
-Copy the returned namespace `id` into `wrangler.jsonc`, replacing the placeholder `00000000000000000000000000000000`.
+The checked-in `wrangler.jsonc` is already bound to the `SNAPSHOTS` KV namespace for this account.
+If you recreate the namespace, run `npx wrangler kv namespace create SNAPSHOTS` and replace the `id` in `wrangler.jsonc`.
 
 Optional refresh protection:
 
@@ -60,6 +60,8 @@ npx wrangler deploy --dry-run
 npx wrangler deploy
 ```
 
+Public endpoint: `https://unogs-kr-tracker.thejjw.workers.dev`
+
 The configured cron is `30 20 * * *`, which runs daily at 20:30 UTC.
 
 ## API
@@ -72,4 +74,3 @@ CORS is emitted only for these origins:
 
 - `https://jjw.is-a.dev`
 - `https://thejjw.github.io`
-
