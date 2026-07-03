@@ -225,6 +225,20 @@
       display: none;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
+    .status p {
+      margin: 8px auto 0;
+      max-width: 520px;
+      color: var(--muted);
+    }
+
+    .status .link {
+      margin-top: 14px;
+    }
+
     .spinner {
       width: 34px;
       height: 34px;
@@ -470,7 +484,9 @@
     </section>
 
     <section class="status" id="emptyState" hidden>
-      <strong>No matching titles</strong>
+      <strong id="emptyTitle">No matching titles</strong>
+      <p id="emptyMessage"></p>
+      <a class="link primary" id="emptyLink" href="https://unogs.com/countrydetail" target="_blank" rel="noopener noreferrer" hidden>Check uNoGS</a>
     </section>
 
     <section class="status" id="errorState" hidden role="alert">
@@ -487,6 +503,7 @@
       expiring: "/api/expiring.json",
       new: "/api/new.json"
     };
+    const UNOGS_COUNTRY_URL = "https://unogs.com/countrydetail";
 
     const state = {
       mode: "expiring",
@@ -505,6 +522,9 @@
       grid: document.getElementById("titleGrid"),
       loading: document.getElementById("loadingState"),
       empty: document.getElementById("emptyState"),
+      emptyTitle: document.getElementById("emptyTitle"),
+      emptyMessage: document.getElementById("emptyMessage"),
+      emptyLink: document.getElementById("emptyLink"),
       error: document.getElementById("errorState"),
       errorMessage: document.getElementById("errorMessage"),
       collectedAt: document.getElementById("collectedAt"),
@@ -550,6 +570,7 @@
     function normalizeSnapshot(snapshot) {
       const items = Array.isArray(snapshot && snapshot.items) ? snapshot.items : [];
       return {
+        sourceUrl: stringValue(snapshot && snapshot.sourceUrl),
         collectedAt: stringValue(snapshot && snapshot.collectedAt),
         candidatesAnalyzed: numberValue(snapshot && snapshot.candidatesAnalyzed),
         items: items.map((item) => ({
@@ -594,6 +615,7 @@
         .sort((a, b) => compareItems(a, b, sort));
 
       renderSummary(snapshot);
+      renderEmptyState(snapshot);
       elements.empty.hidden = state.filtered.length !== 0;
       elements.grid.innerHTML = "";
       elements.grid.append(...state.filtered.map(createCard));
@@ -629,6 +651,26 @@
       elements.movieCount.textContent = String(movies);
       elements.seriesCount.textContent = String(series);
       elements.candidateCount.textContent = String(candidates);
+    }
+
+    /** Sets empty-state copy for source-empty snapshots and filter misses. */
+    function renderEmptyState(snapshot) {
+      const hasSourceItems = snapshot.items.length > 0;
+      const label = state.mode === "expiring" ? "expiring titles" : "new titles";
+
+      if (hasSourceItems) {
+        elements.emptyTitle.textContent = "No matching titles";
+        elements.emptyMessage.textContent = "Try a different search or filter.";
+        elements.emptyLink.hidden = true;
+        return;
+      }
+
+      elements.emptyTitle.textContent = "No " + label + " right now";
+      elements.emptyMessage.textContent =
+        "uNoGS is currently returning zero " + label +
+        " for South Korea. If uNoGS shows titles that are missing here, let me know.";
+      elements.emptyLink.href = snapshot.sourceUrl || UNOGS_COUNTRY_URL;
+      elements.emptyLink.hidden = false;
     }
 
     /** Builds one title card without assigning untrusted HTML strings. */
@@ -777,7 +819,7 @@
 
     /** Returns the active snapshot or an empty placeholder. */
     function activeSnapshot() {
-      return state.snapshots[state.mode] || { collectedAt: "", candidatesAnalyzed: 0, items: [] };
+      return state.snapshots[state.mode] || { sourceUrl: "", collectedAt: "", candidatesAnalyzed: 0, items: [] };
     }
 
     /** Formats an ISO date for compact display. */
