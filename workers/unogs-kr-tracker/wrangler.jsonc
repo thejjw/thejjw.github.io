@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "unogs-kr-tracker",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-03",
+  "observability": {
+    "enabled": true
+  },
+  "triggers": {
+    "crons": [
+      "30 20 * * *"
+    ]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SNAPSHOTS",
+      // Replace this placeholder with the id returned by:
+      // npx wrangler kv namespace create SNAPSHOTS
+      "id": "00000000000000000000000000000000"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://jjw.is-a.dev,https://thejjw.github.io"
+  }
+}
