@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Netflix KR uNoGS Tracker</title>
+  <title>Netflix KR Tracker</title>
   <style>
     :root {
       color-scheme: dark;
@@ -419,7 +419,7 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">South Korea</p>
-        <h1>Netflix KR uNoGS Tracker</h1>
+        <h1>Netflix KR Tracker</h1>
       </div>
       <div class="meta" aria-live="polite">
         <span class="pill" id="collectedAt">Not loaded</span>
@@ -740,17 +740,17 @@
       return chips;
     }
 
-    /** Creates outbound links for uNoGS, Netflix, and IMDb when IDs exist. */
+    /** Creates outbound links for Netflix, uNoGS, and IMDb when IDs exist. */
     function createLinks(item) {
       const links = document.createElement("div");
       links.className = "links";
 
-      if (item.url) {
-        addLink(links, item.url, "uNoGS", "primary");
+      if (item.netflixId) {
+        addLink(links, "https://www.netflix.com/title/" + encodeURIComponent(item.netflixId), "Netflix", "primary");
       }
 
-      if (item.netflixId) {
-        addLink(links, "https://www.netflix.com/title/" + encodeURIComponent(item.netflixId), "Netflix");
+      if (item.url) {
+        addLink(links, item.url, "uNoGS");
       }
 
       if (item.imdbId) {
