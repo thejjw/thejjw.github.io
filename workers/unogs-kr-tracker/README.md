@@ -5,7 +5,7 @@ Cloudflare Worker that scrapes uNoGS South Korea (`countrylist=348`) for Netflix
 ## Setup
 
 ```powershell
-Set-Location C:\temp\ag\mint-small-shadow\thejjw.github.io\workers\unogs-kr-tracker
+Set-Location .\thejjw.github.io\workers\unogs-kr-tracker
 npm install
 ```
 
