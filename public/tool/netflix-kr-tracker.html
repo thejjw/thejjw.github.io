@@ -351,8 +351,10 @@
       margin: 0;
       color: var(--muted);
       font-size: 0.9rem;
+      /* uNoGS synopses are short blurbs (<=156 chars); clamp high enough that
+         the full text always shows while keeping card heights disciplined. */
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 6;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -750,9 +752,11 @@
       // Runtime arrives as "--" when unknown; hide it like the other absent fields.
       if (item.runtime && item.runtime !== "--") addChip(chips, item.runtime);
       // Rating and IMDb Top 250 rank come free from the search response; hide when absent.
-      if (item.rating > 0) addChip(chips, "★ " + item.rating.toFixed(1), "rating-chip");
+      if (item.rating > 0) {
+        addChip(chips, "★ " + item.rating.toFixed(1), "rating-chip", "uNoGS average rating (out of 5)");
+      }
       const top250 = item.top250 || item.top250tv;
-      if (top250 > 0) addChip(chips, "IMDb Top 250 #" + top250, "top250-chip");
+      if (top250 > 0) addChip(chips, "IMDb Top 250 #" + top250, "top250-chip", "IMDb Top 250 rank");
       item.genres.slice(0, 3).forEach((genre) => addChip(chips, genre));
 
       return chips;
@@ -779,11 +783,12 @@
     }
 
     /** Adds a chip when the value is present. */
-    function addChip(parent, value, className) {
+    function addChip(parent, value, className, tooltip) {
       if (!value) return;
       const chip = document.createElement("span");
       chip.className = "chip" + (className ? " " + className : "");
       chip.textContent = value;
+      if (tooltip) chip.title = tooltip;
       parent.append(chip);
     }
 
