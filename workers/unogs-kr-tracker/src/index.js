@@ -214,7 +214,7 @@ function normalizeResult(result, kind) {
     type,
     year: stringValue(result.year),
     synopsis: decodeHtml(result.synopsis),
-    runtime: result.runtime ? `${result.runtime}m` : "--",
+    runtime: formatRuntime(result.runtime),
     imdbId: stringValue(result.imdbid),
     posterUrl: stringValue(result.poster),
     boxartUrl: stringValue(result.img),
@@ -310,6 +310,26 @@ function decodeHtml(value) {
     .replace(/&gt;/g, ">")
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
     .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
+}
+
+// Formats uNoGS search runtime seconds into the same compact label uNoGS shows.
+function formatRuntime(value) {
+  const totalSeconds = Number(value);
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return "--";
+  }
+
+  const seconds = Math.trunc(totalSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  const parts = [];
+
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  if (remainingSeconds || parts.length === 0) parts.push(`${remainingSeconds}s`);
+
+  return parts.join("");
 }
 
 // Converts nullish values to the empty string for stable JSON fields.
