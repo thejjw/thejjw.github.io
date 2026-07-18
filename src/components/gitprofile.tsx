@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import { formatDistance } from 'date-fns';
 import {
@@ -44,7 +44,6 @@ const GitProfile = ({ config }: { config: Config }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [githubProjects, setGithubProjects] = useState<GithubProject[]>([]);
-  const agentRef = useRef<any>(null);
   const [agentLoaded, setAgentLoaded] = useState<boolean>(false);
 
   // Initial check for URL query parameter on mount
@@ -58,41 +57,25 @@ const GitProfile = ({ config }: { config: Config }) => {
   // React to toggle state changes
   useEffect(() => {
     if (agentLoaded) {
-      const initAgent = () => {
+      // Create script tag to auto-initialize the demo agent
+      const script = document.createElement('script');
+      script.id = 'page-agent-script';
+      // Use timestamp cache-busting to force browser to re-execute IIFE on subsequent toggles
+      script.src = `https://cdn.jsdelivr.net/npm/page-agent@latest/dist/iife/page-agent.demo.js?lang=en-US&t=${Date.now()}`;
+      script.crossOrigin = 'anonymous';
+      script.async = true;
+      document.body.appendChild(script);
+
+      return () => {
+        script.remove();
         const win = window as any;
-        if (win.PageAgent && !agentRef.current) {
-          agentRef.current = new win.PageAgent({ language: 'en-US' });
+        if (win.pageAgent) {
+          if (typeof win.pageAgent.dispose === 'function') {
+            win.pageAgent.dispose();
+          }
+          win.pageAgent = null;
         }
       };
-
-      // Check if script is already present in document
-      let script = document.getElementById(
-        'page-agent-script',
-      ) as HTMLScriptElement;
-      if (!script) {
-        script = document.createElement('script');
-        script.id = 'page-agent-script';
-        script.src =
-          'https://cdn.jsdelivr.net/npm/page-agent@latest/dist/iife/page-agent.demo.js?autoInit=false&lang=en-US';
-        script.crossOrigin = 'anonymous';
-        script.async = true;
-        script.onload = initAgent;
-        document.body.appendChild(script);
-      } else {
-        if ((window as any).PageAgent) {
-          initAgent();
-        } else {
-          script.addEventListener('load', initAgent);
-        }
-      }
-    } else {
-      // Disable/dispose the agent
-      if (agentRef.current) {
-        if (typeof agentRef.current.dispose === 'function') {
-          agentRef.current.dispose();
-        }
-        agentRef.current = null;
-      }
     }
   }, [agentLoaded]);
 
