@@ -230,7 +230,8 @@ const GitProfile = ({ config }: { config: Config }) => {
       {/* Floating Top-Right Toggle Button */}
       <button
         onClick={handleToggleAgent}
-        className={`fixed top-4 right-4 z-50 btn btn-sm gap-2 shadow-lg rounded-full ${
+        data-tip="Uses Alibaba's page-agent. Do not use if you do not agree with their TOS."
+        className={`fixed top-4 right-4 z-50 btn btn-sm gap-2 shadow-lg rounded-full tooltip tooltip-left ${
           agentLoaded ? 'btn-error btn-outline' : 'btn-primary'
         }`}
       >
