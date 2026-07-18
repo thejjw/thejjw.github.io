@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import { formatDistance } from 'date-fns';
 import {
@@ -44,6 +44,71 @@ const GitProfile = ({ config }: { config: Config }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [githubProjects, setGithubProjects] = useState<GithubProject[]>([]);
+  const agentRef = useRef<any>(null);
+  const [agentLoaded, setAgentLoaded] = useState<boolean>(false);
+
+  // Initial check for URL query parameter on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('agent') === 'true') {
+      setAgentLoaded(true);
+    }
+  }, []);
+
+  // React to toggle state changes
+  useEffect(() => {
+    if (agentLoaded) {
+      const initAgent = () => {
+        const win = window as any;
+        if (win.PageAgent && !agentRef.current) {
+          agentRef.current = new win.PageAgent({ language: 'en-US' });
+        }
+      };
+
+      // Check if script is already present in document
+      let script = document.getElementById(
+        'page-agent-script',
+      ) as HTMLScriptElement;
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'page-agent-script';
+        script.src =
+          'https://cdn.jsdelivr.net/npm/page-agent@latest/dist/iife/page-agent.demo.js?autoInit=false&lang=en-US';
+        script.crossOrigin = 'anonymous';
+        script.async = true;
+        script.onload = initAgent;
+        document.body.appendChild(script);
+      } else {
+        if ((window as any).PageAgent) {
+          initAgent();
+        } else {
+          script.addEventListener('load', initAgent);
+        }
+      }
+    } else {
+      // Disable/dispose the agent
+      if (agentRef.current) {
+        if (typeof agentRef.current.dispose === 'function') {
+          agentRef.current.dispose();
+        }
+        agentRef.current = null;
+      }
+    }
+  }, [agentLoaded]);
+
+  const handleToggleAgent = () => {
+    const nextState = !agentLoaded;
+    setAgentLoaded(nextState);
+
+    // Sync URL search params without page reload
+    const url = new URL(window.location.href);
+    if (nextState) {
+      url.searchParams.set('agent', 'true');
+    } else {
+      url.searchParams.delete('agent');
+    }
+    window.history.pushState({}, '', url.toString());
+  };
 
   const getGithubProjects = useCallback(
     async (publicRepoCount: number): Promise<GithubProject[]> => {
@@ -179,6 +244,19 @@ const GitProfile = ({ config }: { config: Config }) => {
 
   return (
     <div className="fade-in h-screen">
+      {/* Floating Top-Right Toggle Button */}
+      <button
+        onClick={handleToggleAgent}
+        className={`fixed top-4 right-4 z-50 btn btn-sm gap-2 shadow-lg rounded-full ${
+          agentLoaded ? 'btn-error btn-outline' : 'btn-primary'
+        }`}
+      >
+        <span role="img" aria-label="robot">
+          🤖
+        </span>
+        {agentLoaded ? 'Disable AI Agent' : 'Enable AI Agent'}
+      </button>
+
       {error ? (
         <ErrorPage
           status={error.status}
