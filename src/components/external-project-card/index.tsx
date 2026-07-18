@@ -78,8 +78,9 @@ const ExternalProjectCard = ({
 
           try {
             if (googleAnalyticId) {
-              ga.event('Click External Project', {
-                post: item.title,
+              ga.event('select_content', {
+                content_type: 'external_project',
+                content_id: item.title,
               });
             }
           } catch (error) {

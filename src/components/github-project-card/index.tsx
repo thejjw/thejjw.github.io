@@ -82,7 +82,10 @@ const GithubProjectCard = ({
 
           try {
             if (googleAnalyticsId) {
-              ga.event('Click project', { project: item.name });
+              ga.event('select_content', {
+                content_type: 'github_project',
+                content_id: item.name,
+              });
             }
           } catch (error) {
             console.error(error);

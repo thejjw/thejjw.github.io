@@ -103,8 +103,9 @@ const BlogCard = ({
 
             try {
               if (googleAnalyticsId) {
-                ga.event('Click Blog Post', {
-                  post: article.title,
+                ga.event('select_content', {
+                  content_type: 'blog_post',
+                  content_id: article.title,
                 });
               }
             } catch (error) {
