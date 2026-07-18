@@ -240,7 +240,7 @@ const CONFIG = {
 
   // Optional Footer. Supports plain text or HTML.
   footer: 
-  `<span>page based on GitProfile(@arifszn/gitprofile). @thejjw 2025-2026</span><br>
+  `<span>page based on GitProfile(@arifszn/gitprofile). © 2025–2026 @thejjw</span><br>
   <span><a href="./tool/compression-comparison-tool.html">tool 1: Compression Tool</a> • <a href="./tool/jpegxl-converter.html">tool 2: JPEG XL Converter</a></span> • <span><a href="./tool/jpegxl-target-size.html">tool 3: JPEG XL Target Size</a></span><br>
   <span><a href="./tool/ffmpeg-converter.html">tool 4: FFmpeg Transcoder</a></span> • <span><a href="./tool/text-crypto-tool.html">tool 5: Text Crypto Tool</a></span> • <span><a href="./tool/web-llm-chat.html">tool 6: Web LLM Chat</a></span><br>
   <span><a href="./tool/gchqcc/cyberchef.html">tool 7: CyberChef</a></span> • <span><a href="./tool/magika.html">tool 8: magika</a></span> • <span><a href="./tool/iio/iio.html">tool 9: Instant.io</a></span><br>
