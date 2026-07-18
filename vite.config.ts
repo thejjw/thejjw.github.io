@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 import CONFIG from './gitprofile.config';
 import { createHtmlPlugin } from 'vite-plugin-html';
 
+const googleAnalyticsId = (CONFIG as Config).googleAnalytics?.id;
+
 // https://vitejs.dev/config/
 export default defineConfig({
   base: CONFIG.base || '/',
@@ -15,14 +17,14 @@ export default defineConfig({
           metaTitle: CONFIG.seo.title,
           metaDescription: CONFIG.seo.description,
           metaImageURL: CONFIG.seo.imageURL,
-          googleAnalyticsScript: CONFIG.googleAnalytics.id
+          googleAnalyticsScript: googleAnalyticsId
             ? `<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=${CONFIG.googleAnalytics.id}"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', '${CONFIG.googleAnalytics.id}');
+  gtag('config', '${googleAnalyticsId}');
 </script>`
             : '',
         },
