@@ -56,6 +56,14 @@ const CONFIG = {
             'https://lh3.googleusercontent.com/0cQ7YiJw_GI9Yz61Tjt5QnSbkPjBS6oQ5dvlP4pkhRH84zDhgIw6e-BNigMGuwg3D1vUnKdh0Y-WX84inBELvWlH=s1280-w1280-h800',
           link: 'https://chromewebstore.google.com/detail/cache-killer/jhpfoicanffigcjoogcgihhjikmcpopf',
         },
+        {
+          title: 'Copilot Provider Bridge',
+          description:
+            'Enables VS Code Copilot AI features for users via their existing third-party AI coding plans and LLM subscriptions.',
+          imageUrl:
+            'https://jjw.is-a.dev/image/projects/copilot-provider-bridge.png',
+          link: 'https://marketplace.visualstudio.com/items?itemName=thejjw.copilot-provider-bridge',
+        },
       ],
     },
   },
