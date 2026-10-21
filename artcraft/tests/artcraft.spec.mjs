@@ -70,7 +70,11 @@ const OPERATIONS = {
     kind: 'click',
     what: 'a clip in the timeline',
     at: { x: 670, y: 555 },
-    changed: 0.005,
+    // The inspector on the right fills in when a clip is selected. The
+    // change is measured there, where it happens, instead of over the
+    // whole window.
+    region: { x: 1000, y: 50, width: 280, height: 300 },
+    changed: 0.01,
   },
   lightcraft: { kind: 'command' },
   effectcraft: { kind: 'api' },
@@ -247,14 +251,15 @@ for (const app of manifest.apps) {
         expect(() => JSON.parse(info)).not.toThrow();
       } else {
         const helper = await page.context().newPage();
-        const before = await page.screenshot();
+        const shot = (clip) => page.screenshot(clip ? { clip } : {});
+        const before = await shot(operation.region);
         if (operation.kind === 'drop') {
           await dropFile(page, operation.file());
         } else {
           await page.mouse.click(operation.at.x, operation.at.y);
         }
         await page.waitForTimeout(8000);
-        const after = await page.screenshot();
+        const after = await shot(operation.region);
         const difference = await pixelDifference(helper, before, after);
         await helper.close();
         expect(

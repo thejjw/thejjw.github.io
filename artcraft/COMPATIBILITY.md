@@ -53,17 +53,23 @@ the screen does not change:
 
 | Application | Operation                                                             | Measured change                |
 | ----------- | --------------------------------------------------------------------- | ------------------------------ |
-| PhotoCraft  | drop a PNG on the canvas                                              | 10 % of the screen             |
-| VectorCraft | drop an SVG on the canvas                                             | 61 % of the screen             |
-| FilmCraft   | click a clip in the timeline, the inspector fills in                  | 1.3 % of the screen            |
+| PhotoCraft  | drop a PNG on the canvas, the image opens                             | 10 % of the screen             |
+| VectorCraft | drop an SVG on the canvas, the drawing opens                          | 61 % of the screen             |
+| FilmCraft   | click a clip in the timeline, the inspector fills in                  | 3 % of the inspector           |
 | LightCraft  | `lightcraft.command("library.info")` answers with JSON                | the command returns a document |
-| PdfCraft    | drop a PDF on the canvas                                              | 29 % of the screen             |
+| PdfCraft    | drop a PDF on the canvas, the document opens                          | 29 % of the screen             |
 | EffectCraft | `effectcraft.addFile()` adds the file, `effectcraft.files()` lists it | the file list grows            |
-| DesignCraft | click "Open sample magazine", the document opens                      | 67 % of the screen             |
+| DesignCraft | click "Open sample magazine", the magazine opens                      | 67 % of the screen             |
 
 The click positions belong to the pinned versions and to the 1280x720
 viewport of the test configuration. A version bump can move them, and the
 test then says so.
+
+FilmCraft is the one application whose file opening is not covered by an
+automated test: its web build exposes no automation API and opens its file
+dialog from the application's own menu, which a headless browser cannot
+drive. The automated operation for FilmCraft is therefore a selection in
+the timeline; opening a media file in FilmCraft has to be checked by hand.
 
 ## What the tests cannot cover
 

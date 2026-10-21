@@ -100,10 +100,20 @@ releases are used.
 
 ## Rolling back
 
-The deployment is reproducible, so a rollback is a revert:
+The deployment is reproducible, so a rollback is a revert. To go back to the
+version before an application was updated:
 
 ```sh
 git revert <the commit that bumped the version>
+git push
+```
+
+To remove the whole suite, revert every commit it added, newest first. With
+`c460746` as the first commit of the suite:
+
+```sh
+git revert --no-commit c460746^..HEAD
+git commit -m "revert: remove the ArtCraft suite"
 git push
 ```
 
