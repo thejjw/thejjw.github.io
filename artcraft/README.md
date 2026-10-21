@@ -16,7 +16,8 @@ GitHub Pages deployment.
 
 The landing page lives at `/crafting/`. The applications are the upstream
 release builds, unmodified and redistributed under their own licenses
-(Apache-2.0 and MIT).
+(Apache-2.0 and MIT). The icons on the landing page come from the same
+pinned upstream tags.
 
 ## How it works
 

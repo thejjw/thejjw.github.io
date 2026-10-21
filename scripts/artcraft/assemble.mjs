@@ -1,4 +1,12 @@
-import { cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import {
+  copyFile,
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  stat,
+} from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -52,7 +60,19 @@ export async function assemble(distDir, options = {}) {
 
   const landing = path.join(distDir, 'crafting');
   await rm(landing, { recursive: true, force: true });
-  await mkdir(landing, { recursive: true });
+  await mkdir(path.join(landing, 'icons'), { recursive: true });
+
+  // The application icons come from the pinned upstream tags.
+  const iconSource = path.join(repoRoot, '.artcraft', 'icons');
+  if (existsSync(iconSource)) {
+    for (const file of await readdir(iconSource)) {
+      await copyFile(
+        path.join(iconSource, file),
+        path.join(landing, 'icons', file)
+      );
+    }
+  }
+
   await renderLanding(landing, { distDir });
   console.log(
     `+ landing page -> ${path.relative(repoRoot, landing)} (${deployed.length} apps)`

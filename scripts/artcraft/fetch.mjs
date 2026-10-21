@@ -19,6 +19,7 @@ const manifestPath = path.join(repoRoot, 'artcraft', 'manifest.json');
 const workDir = path.join(repoRoot, '.artcraft');
 const cacheDir = path.join(workDir, 'cache');
 const stageDir = path.join(workDir, 'stage');
+const iconDir = path.join(workDir, 'icons');
 
 /** Read the pinned upstream manifest. */
 async function readManifest() {
@@ -123,6 +124,26 @@ async function pruneAppFiles(appDirectory) {
 }
 
 /**
+ * Fetch the application icon from the pinned tag of the upstream
+ * repository. A tag never moves, so the file is stable.
+ */
+async function fetchIcon(app, slug) {
+  if (!app.icon) return null;
+  const url = `https://raw.githubusercontent.com/${slug}/${app.tag}/${app.icon}`;
+  const response = await fetch(url, { redirect: 'follow' });
+  if (!response.ok) {
+    console.warn(`    no icon for ${app.id}: ${response.status}`);
+    return null;
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const target = path.join(iconDir, `${app.id}${path.extname(app.icon)}`);
+  await mkdir(iconDir, { recursive: true });
+  await writeFile(target, bytes);
+  console.log(`    icon: ${path.basename(target)}`);
+  return target;
+}
+
+/**
  * Fetch one app's pinned web build, verify it and stage it.
  * The manifest pins the version and the SHA-256 of the release asset.
  */
@@ -160,6 +181,10 @@ async function fetchApp(app, options) {
     }
   }
   console.log(`    sha256 ok: ${digest}`);
+
+  if (!options.offline) {
+    await fetchIcon(app, slug);
+  }
 
   const target = path.join(stageDir, app.id);
   await rm(target, { recursive: true, force: true });

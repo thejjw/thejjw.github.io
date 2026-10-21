@@ -111,6 +111,15 @@ export async function renderLanding(outDir, options = {}) {
 
   const icons = [];
   for (const app of manifest.apps) {
+    // An icon that was prepared from the upstream repository wins over the
+    // one the release archive may carry.
+    const prepared = (await readdir(iconDir)).find((file) =>
+      file.startsWith(`${app.id}.`)
+    );
+    if (prepared) {
+      icons.push(prepared);
+      continue;
+    }
     const appDirectory = path.join(options.distDir ?? 'dist', app.id);
     const icon = await findIcon(appDirectory);
     if (icon) {
