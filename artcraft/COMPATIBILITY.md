@@ -48,6 +48,23 @@ The Playwright suite (`artcraft/tests`) checks, for every application:
 - no asset returns an error status,
 - the landing page lists every application and every launch link works.
 
+Every application also performs one real operation, and the test fails when
+the screen does not change:
+
+| Application | Operation                                                             | Measured change                |
+| ----------- | --------------------------------------------------------------------- | ------------------------------ |
+| PhotoCraft  | drop a PNG on the canvas                                              | 10 % of the screen             |
+| VectorCraft | drop an SVG on the canvas                                             | 61 % of the screen             |
+| FilmCraft   | click a clip in the timeline, the inspector fills in                  | 1.3 % of the screen            |
+| LightCraft  | `lightcraft.command("library.info")` answers with JSON                | the command returns a document |
+| PdfCraft    | drop a PDF on the canvas                                              | 29 % of the screen             |
+| EffectCraft | `effectcraft.addFile()` adds the file, `effectcraft.files()` lists it | the file list grows            |
+| DesignCraft | click "Open sample magazine", the document opens                      | 67 % of the screen             |
+
+The click positions belong to the pinned versions and to the 1280x720
+viewport of the test configuration. A version bump can move them, and the
+test then says so.
+
 ## What the tests cannot cover
 
 - **WebGPU.** Headless Chromium has no GPU adapter, so the tests exercise the

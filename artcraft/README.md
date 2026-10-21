@@ -44,7 +44,12 @@ npm run build               # build the portfolio into dist/
 npm run artcraft:assemble   # add the applications and the landing page
 npm run artcraft:validate   # fail on missing assets
 npm run artcraft:serve      # serve dist/ on http://127.0.0.1:4173/
+npm run artcraft:smoke      # Playwright tests against the local server
 ```
+
+The smoke tests need a browser: `npx playwright install chromium`. Set
+`ARTCRAFT_BASE_URL` to run them against a deployed site instead of the local
+server.
 
 The downloaded archives and their unpacked copies live in `.artcraft/`, which
 is not tracked by git.

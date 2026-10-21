@@ -11,7 +11,7 @@ const baseURL = process.env.ARTCRAFT_BASE_URL || 'http://127.0.0.1:4173';
  * against a deployed site.
  */
 export default defineConfig({
-  testDir: 'artcraft/tests',
+  testDir: 'tests',
   timeout: 300000,
   expect: { timeout: 60000 },
   workers: 1,
@@ -20,6 +20,8 @@ export default defineConfig({
   use: {
     baseURL,
     browserName: 'chromium',
+    // The click positions in the tests belong to this viewport.
+    viewport: { width: 1280, height: 720 },
     launchOptions: {
       args: [
         '--enable-unsafe-swiftshader',
@@ -33,7 +35,7 @@ export default defineConfig({
     : {
         command: 'node scripts/artcraft/serve.mjs',
         url: 'http://127.0.0.1:4173/crafting/',
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: true,
         timeout: 60000,
       },
 });

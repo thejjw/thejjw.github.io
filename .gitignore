@@ -15,6 +15,10 @@ dist-ssr
 # Downloaded ArtCraft release artifacts and the staged copies of them
 .artcraft/
 
+# Playwright output
+test-results/
+playwright-report/
+
 # Always include everything under public/tool/ and public/custom/
 !public/tool/**
 !public/custom/**
