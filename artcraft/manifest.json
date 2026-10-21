@@ -1,0 +1,128 @@
+{
+  "landingPath": "/crafting/",
+  "siteBase": "/",
+  "apps": [
+    {
+      "id": "photocraft",
+      "name": "PhotoCraft",
+      "accent": "#38bdf8",
+      "tag": "v0.11.1",
+      "version": "0.11.1",
+      "asset": "photocraft-web-0.11.1.zip",
+      "sha256": "f954c8096eeb5ab7ab20cd73445420097a4afde46f3d79547b3c9fe4f03d735f",
+      "repo": "https://github.com/storytold/photocraft",
+      "releaseUrl": "https://github.com/storytold/photocraft/releases/tag/v0.11.1",
+      "license": ["Apache-2.0", "MIT"],
+      "summary": "Raster image editor: crop, retouch, color and layer work on the visitor's device.",
+      "requires": ["WebGPU or WebGL2"],
+      "status": "available",
+      "notes": "The app's WebAssembly ships gzip-compressed and split into parts, so it survives hosts with a 25 MiB file cap."
+    },
+    {
+      "id": "vectorcraft",
+      "name": "VectorCraft",
+      "accent": "#f472b6",
+      "tag": "v0.13.1",
+      "version": "0.13.1",
+      "asset": "vectorcraft-web-0.13.1.zip",
+      "sha256": "27e1b97af96614bffba50276e86a773481d80814716af5ae5864f4156c7b2d33",
+      "repo": "https://github.com/storytold/vectorcraft",
+      "releaseUrl": "https://github.com/storytold/vectorcraft/releases/tag/v0.13.1",
+      "license": ["Apache-2.0", "MIT"],
+      "summary": "Vector graphics editor: paths, shapes, typography and a PDF backend for import and export.",
+      "requires": ["WebGPU or WebGL2"],
+      "status": "available",
+      "notes": "Large single WebAssembly module (about 67 MiB); extra fonts can be dropped into fonts/ next to the app."
+    },
+    {
+      "id": "filmcraft",
+      "name": "FilmCraft",
+      "accent": "#a78bfa",
+      "tag": "v0.9.0",
+      "version": "0.9.0",
+      "asset": "filmcraft-web-0.9.0.zip",
+      "sha256": "b70680378d7ba5837126923b4a92591221356ec5b261a0f8d9b8952623996304",
+      "repo": "https://github.com/storytold/filmcraft",
+      "releaseUrl": "https://github.com/storytold/filmcraft/releases/tag/v0.9.0",
+      "license": ["Apache-2.0", "MIT"],
+      "summary": "Non-linear video editor: cut, trim and composite clips, with audio.",
+      "requires": [
+        "WebGPU or WebGL2",
+        "WebCodecs for video decode (Chromium-based browsers)"
+      ],
+      "status": "available",
+      "notes": "Uses an AudioWorklet for audio; video decode falls back to slower paths on browsers without WebCodecs."
+    },
+    {
+      "id": "lightcraft",
+      "name": "LightCraft",
+      "accent": "#fbbf24",
+      "tag": "v0.9.1",
+      "version": "0.9.1",
+      "asset": "lightcraft-web-0.9.1.zip",
+      "sha256": "9ed278026b5b076aa5c8dce99317f9b114b3ef98030207ed3eb1a30ff2b7ff71",
+      "repo": "https://github.com/storytold/lightcraft",
+      "releaseUrl": "https://github.com/storytold/lightcraft/releases/tag/v0.9.1",
+      "license": ["Apache-2.0", "MIT"],
+      "summary": "Non-destructive photo library and RAW developer: browse, develop and export RAW images.",
+      "requires": ["WebGPU or WebGL2"],
+      "status": "available",
+      "notes": "Rendering happens in Web Workers. The release zip also ships precompressed .gz/.br copies of some files; they are dropped because GitHub Pages does not serve them with Content-Encoding.",
+      "optionalAssets": ["lightcraft_zh_hans.otf"]
+    },
+    {
+      "id": "pdfcraft",
+      "name": "PdfCraft",
+      "accent": "#f87171",
+      "tag": "v0.9.0",
+      "version": "0.9.0",
+      "asset": "pdfcraft-web-0.9.0.zip",
+      "sha256": "eb465508b0623be27b07ef5145c0670c71ddd7791b4541721358b59c7e0a722e",
+      "repo": "https://github.com/storytold/pdfcraft",
+      "releaseUrl": "https://github.com/storytold/pdfcraft/releases/tag/v0.9.0",
+      "license": ["Apache-2.0", "MIT"],
+      "summary": "PDF reader and editor: page thumbnails, annotations, text and export.",
+      "requires": ["WebGPU or WebGL2"],
+      "status": "available",
+      "notes": "Pure client side: PDFs are read from the browser file picker and never uploaded."
+    },
+    {
+      "id": "effectcraft",
+      "name": "EffectCraft",
+      "accent": "#34d399",
+      "tag": "v0.11.1",
+      "version": "0.11.1",
+      "asset": "effectcraft-web-0.11.1.zip",
+      "sha256": "8675e595d876408ce23d868d8530f17466029650da727d742028484cbde8a207",
+      "repo": "https://github.com/storytold/effectcraft",
+      "releaseUrl": "https://github.com/storytold/effectcraft/releases/tag/v0.11.1",
+      "license": ["Apache-2.0", "MIT"],
+      "summary": "Motion graphics and compositing: node-style effects, animation and rendering.",
+      "requires": ["WebGPU or WebGL2"],
+      "status": "available",
+      "notes": "Installs its own service worker for offline use (scope limited to its own directory). A 'no service worker' launch link is offered for troubleshooting.",
+      "extraLinks": [
+        {
+          "label": "Open without service worker",
+          "path": "?nosw"
+        }
+      ]
+    },
+    {
+      "id": "designcraft",
+      "name": "DesignCraft",
+      "accent": "#60a5fa",
+      "tag": "v0.10.0",
+      "version": "0.10.0",
+      "asset": "designcraft-web-0.10.0.zip",
+      "sha256": "88358c3f4bc169001bb7b4f8022a4a148ecae7534c17f2d8867c1bfaeab618a4",
+      "repo": "https://github.com/storytold/designcraft",
+      "releaseUrl": "https://github.com/storytold/designcraft/releases/tag/v0.10.0",
+      "license": ["Apache-2.0", "MIT"],
+      "summary": "Page and layout design editor: grids, columns, typography and publishing-ready output.",
+      "requires": ["WebGPU or WebGL2"],
+      "status": "available",
+      "notes": "Plain Trunk build with relative asset URLs; no service worker, no worker files."
+    }
+  ]
+}

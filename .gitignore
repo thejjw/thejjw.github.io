@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Downloaded ArtCraft release artifacts and the staged copies of them
+.artcraft/
+
 # Always include everything under public/tool/ and public/custom/
 !public/tool/**
 !public/custom/**

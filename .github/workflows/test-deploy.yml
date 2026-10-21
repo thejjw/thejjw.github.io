@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test-deploy:
     runs-on: ubuntu-latest
@@ -26,7 +29,23 @@ jobs:
       - name: Run prettier
         run: npm run prettier
 
+      - name: Cache ArtCraft release artifacts
+        uses: actions/cache@v4
+        with:
+          path: .artcraft/cache
+          key: artcraft-${{ hashFiles('artcraft/manifest.json') }}
+          restore-keys: artcraft-
+
+      - name: Fetch ArtCraft applications
+        run: npm run artcraft:fetch
+
       - name: Build
         run: npm run build
         env:
           CI: ''
+
+      - name: Assemble ArtCraft applications
+        run: npm run artcraft:assemble
+
+      - name: Validate the site
+        run: npm run artcraft:validate

@@ -18,6 +18,11 @@
     "postbuild": "node scripts/verify-analytics.mjs",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "artcraft:fetch": "node scripts/artcraft/fetch.mjs",
+    "artcraft:assemble": "node scripts/artcraft/assemble.mjs --require-all",
+    "artcraft:validate": "node scripts/artcraft/validate.mjs",
+    "artcraft:serve": "node scripts/artcraft/serve.mjs",
+    "artcraft:smoke": "playwright test --config artcraft/playwright.config.mjs",
     "prettier": "prettier --check \"./**/*.{js,jsx,ts,tsx,css,md,json}\"",
     "prettier:fix": "prettier --write \"./**/*.{js,jsx,ts,tsx,css,md,json}\"",
     "preview": "vite preview"
@@ -28,6 +33,7 @@
   },
   "devDependencies": {
     "@arifszn/blog-js": "^2.0.6",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

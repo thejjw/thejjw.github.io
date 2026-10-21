@@ -709,6 +709,18 @@ The posts are fetched by [blog.js](https://github.com/arifszn/blog.js).
 
 To contribute, see the [Contributing guide](https://github.com/arifszn/gitprofile/blob/main/CONTRIBUTING.md).
 
+## 🎨 ArtCraft Creative Suite
+
+This site also hosts seven creative applications that run in the browser as
+WebAssembly: PhotoCraft, VectorCraft, FilmCraft, LightCraft, PdfCraft,
+EffectCraft and DesignCraft. They are the release builds of the projects in
+the [Storytold](https://github.com/storytold) organisation, downloaded and
+published by the deploy workflow.
+
+- Landing page: <https://thejjw.github.io/crafting/>
+- Versions, checksums and the deployment process: [`artcraft/README.md`](artcraft/README.md)
+- Compatibility report and limitations: [`artcraft/COMPATIBILITY.md`](artcraft/COMPATIBILITY.md)
+
 ## 📄 License
 
 [MIT](https://github.com/arifszn/gitprofile/blob/main/LICENSE)

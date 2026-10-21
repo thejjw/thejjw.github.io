@@ -5,6 +5,11 @@ on:
     branches: [main]
 
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and validate without publishing'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -34,8 +39,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache ArtCraft release artifacts
+        uses: actions/cache@v4
+        with:
+          path: .artcraft/cache
+          key: artcraft-${{ hashFiles('artcraft/manifest.json') }}
+          restore-keys: artcraft-
+
+      - name: Fetch ArtCraft applications
+        run: npm run artcraft:fetch
+
       - name: Build with vite
         run: npm run build
+
+      - name: Assemble ArtCraft applications
+        run: npm run artcraft:assemble
+
+      - name: Validate the site
+        run: npm run artcraft:validate
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -43,6 +64,7 @@ jobs:
           path: ./dist
 
   deploy:
+    if: ${{ !inputs.dry_run }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
