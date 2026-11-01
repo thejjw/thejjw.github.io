@@ -14,12 +14,13 @@ const siteBase = manifest.siteBase ?? '/';
 const READY = {
   photocraft: 'window.wasmBindings !== undefined',
   vectorcraft: 'window.wasmBindings !== undefined',
+  cadcraft: 'window.wasmBindings !== undefined',
+  gridcraft: 'window.wasmBindings !== undefined',
+  deckcraft: 'window.wasmBindings !== undefined',
   pdfcraft: 'window.wasmBindings !== undefined',
-  designcraft: 'window.wasmBindings !== undefined',
   filmcraft: 'window.filmcraftLoad && window.filmcraftLoad.readyMs > 0',
-  lightcraft:
-    'window.lightcraftModule !== undefined && typeof window.lightcraft.command === "function"',
-  effectcraft: 'window.effectcraftLoad && window.effectcraftLoad.readyMs > 0',
+  soundcraft: 'window.wasmBindings !== undefined',
+  wordcraft: 'window.wasmBindings !== undefined',
 };
 
 /**
@@ -60,11 +61,36 @@ const OPERATIONS = {
     }),
     changed: 0.05,
   },
-  designcraft: {
+  cadcraft: {
+    kind: 'sequence',
+    what: 'the LINE command',
+    steps: [
+      { click: { x: 600, y: 688 } },
+      { type: 'LINE' },
+      { key: 'Enter' },
+      { type: '100,100' },
+      { key: 'Enter' },
+      { type: '400,400' },
+      { key: 'Enter' },
+    ],
+    changed: 0.01,
+  },
+  deckcraft: {
     kind: 'click',
-    what: 'the "Open sample magazine" button',
-    at: { x: 333, y: 196 },
+    what: 'the second slide',
+    at: { x: 85, y: 380 },
     changed: 0.05,
+  },
+  gridcraft: {
+    kind: 'sequence',
+    what: 'a value in cell A1',
+    steps: [
+      { click: { x: 70, y: 230 } },
+      { type: '42' },
+      { key: 'Enter' },
+    ],
+    region: { x: 0, y: 190, width: 420, height: 140 },
+    changed: 0.003,
   },
   filmcraft: {
     kind: 'click',
@@ -76,8 +102,18 @@ const OPERATIONS = {
     region: { x: 1000, y: 50, width: 280, height: 300 },
     changed: 0.01,
   },
-  lightcraft: { kind: 'command' },
-  effectcraft: { kind: 'api' },
+  soundcraft: {
+    kind: 'sequence',
+    what: 'the transport (Space)',
+    steps: [{ key: 'Space' }],
+    changed: 0.002,
+  },
+  wordcraft: {
+    kind: 'click',
+    what: 'the "Blank document" tile',
+    at: { x: 300, y: 180 },
+    changed: 0.05,
+  },
 };
 
 /** Collect the failures of a page: script errors and missing files. */
@@ -196,10 +232,36 @@ test.describe('landing page', () => {
       await expect(
         card.getByRole('link', { name: 'Source' })
       ).toHaveAttribute('href', app.repo);
+      await expect(card.getByRole('link', { name: 'Source' })).toHaveAttribute(
+        'rel',
+        'nofollow noopener noreferrer'
+      );
+      await expect(
+        card.getByRole('link', { name: 'Release notes' })
+      ).toHaveAttribute('rel', 'nofollow noopener noreferrer');
 
       const entry = await request.get(`${siteBase}${app.id}/`);
       expect(entry.status(), `${app.id} entry point`).toBe(200);
     }
+
+    const catalog = page.locator('.catalog-card');
+    await expect(catalog).toHaveCount(manifest.catalog.length);
+
+    for (const entry of manifest.catalog) {
+      const card = page.locator(`.catalog-card[data-app="${entry.id}"]`);
+      await expect(card).toBeVisible();
+      await expect(card.locator('h3')).toHaveText(entry.name);
+      const github = card.getByRole('link', { name: 'GitHub' });
+      await expect(github).toHaveAttribute('href', entry.repo);
+      await expect(github).toHaveAttribute(
+        'rel',
+        'nofollow noopener noreferrer'
+      );
+    }
+
+    await expect(
+      page.locator('footer a[href="https://github.com/storytold"]')
+    ).toHaveAttribute('rel', 'nofollow noopener noreferrer');
   });
 });
 
@@ -231,42 +293,30 @@ for (const app of manifest.apps) {
       await page.goto(`${siteBase}${app.id}/`);
       await page.waitForFunction(READY[app.id], undefined, { timeout: 180000 });
 
-      if (operation.kind === 'api') {
-        const result = await page.evaluate(async (bytes) => {
-          const file = new File([new Uint8Array(bytes)], 'sample.png', {
-            type: 'image/png',
-          });
-          await window.effectcraft.addFile(file, 'sample.png');
-          const files = await window.effectcraft.files();
-          return { files, info: window.effectcraft.info() };
-        }, Array.from(makeSamplePng()));
-
-        expect(result.files.length, 'the file was added').toBeGreaterThan(0);
-        expect(result.info.crossOriginIsolated).toBe(false);
-      } else if (operation.kind === 'command') {
-        const info = await page.evaluate(async () =>
-          window.lightcraft.command('library.info', '{}')
-        );
-        expect(typeof info).toBe('string');
-        expect(() => JSON.parse(info)).not.toThrow();
+      const helper = await page.context().newPage();
+      const shot = (clip) => page.screenshot(clip ? { clip } : {});
+      const before = await shot(operation.region);
+      if (operation.kind === 'drop') {
+        await dropFile(page, operation.file());
+      } else if (operation.kind === 'click') {
+        await page.mouse.click(operation.at.x, operation.at.y);
       } else {
-        const helper = await page.context().newPage();
-        const shot = (clip) => page.screenshot(clip ? { clip } : {});
-        const before = await shot(operation.region);
-        if (operation.kind === 'drop') {
-          await dropFile(page, operation.file());
-        } else {
-          await page.mouse.click(operation.at.x, operation.at.y);
+        for (const step of operation.steps) {
+          if (step.click) await page.mouse.click(step.click.x, step.click.y);
+          else if (step.type)
+            await page.keyboard.type(step.type, { delay: 50 });
+          else if (step.key) await page.keyboard.press(step.key);
+          else if (step.wait) await page.waitForTimeout(step.wait);
         }
-        await page.waitForTimeout(8000);
-        const after = await shot(operation.region);
-        const difference = await pixelDifference(helper, before, after);
-        await helper.close();
-        expect(
-          difference,
-          `${app.id} did not react to ${operation.what}`
-        ).toBeGreaterThan(operation.changed);
       }
+      await page.waitForTimeout(8000);
+      const after = await shot(operation.region);
+      const difference = await pixelDifference(helper, before, after);
+      await helper.close();
+      expect(
+        difference,
+        `${app.id} did not react to ${operation.what}`
+      ).toBeGreaterThan(operation.changed);
 
       expect(errors, 'script errors').toEqual([]);
     });
