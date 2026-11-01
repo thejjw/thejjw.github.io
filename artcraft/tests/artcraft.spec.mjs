@@ -221,11 +221,30 @@ test.describe('landing page', () => {
     const cards = page.locator('.card');
     await expect(cards).toHaveCount(manifest.apps.length);
 
+    const tools = await page.locator('.group h2').allTextContents();
+    expect(tools).toEqual(manifest.categories.map((category) => category.name));
+
+    for (const category of manifest.categories) {
+      const group = page.locator(`.group[data-category="${category.id}"]`);
+      await expect(group).toBeVisible();
+      const names = await group
+        .locator('.card')
+        .evaluateAll((elements) => elements.map((element) => element.dataset.app));
+      expect(names, `${category.id} applications`).toEqual(
+        manifest.apps
+          .filter((app) => app.category === category.id)
+          .map((app) => app.id)
+      );
+    }
+
     for (const app of manifest.apps) {
       const card = page.locator(`.card[data-app="${app.id}"]`);
       await expect(card).toBeVisible();
-      await expect(card.locator('h2')).toHaveText(app.name);
+      await expect(card.locator('h3')).toHaveText(app.name);
       await expect(card.locator('.badge.version')).toHaveText(`v${app.version}`);
+      await expect(
+        page.locator(`.group[data-category="${app.category}"] .card[data-app="${app.id}"]`)
+      ).toHaveCount(1);
 
       const launch = card.locator('a.launch');
       await expect(launch).toHaveAttribute('href', `${siteBase}${app.id}/`);
@@ -251,6 +270,11 @@ test.describe('landing page', () => {
       const card = page.locator(`.catalog-card[data-app="${entry.id}"]`);
       await expect(card).toBeVisible();
       await expect(card.locator('h3')).toHaveText(entry.name);
+      await expect(
+        page.locator(
+          `.group[data-category="${entry.category}"] .catalog-card[data-app="${entry.id}"]`
+        )
+      ).toHaveCount(1);
       const github = card.getByRole('link', { name: 'GitHub' });
       await expect(github).toHaveAttribute('href', entry.repo);
       await expect(github).toHaveAttribute(
