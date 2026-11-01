@@ -55,19 +55,24 @@ The Playwright suite (`artcraft/tests`) checks, for every application:
 - the landing page lists every application and every launch link works.
 
 Every application also performs one real operation, and the test fails when
-the screen does not change:
+the measured area does not change:
 
-| Application | Operation                                                       | Measured change       |
-| ----------- | --------------------------------------------------------------- | --------------------- |
-| PhotoCraft  | drop a PNG on the canvas, the image opens                       | 10 % of the screen    |
-| VectorCraft | drop an SVG on the canvas, the drawing opens                    | 61 % of the screen    |
-| CADCraft    | the `LINE` command, then two points                             | 1.6 % of the screen   |
-| GridCraft   | type `42` into cell A1                                          | 0.17 % of the screen  |
-| DeckCraft   | click the second slide in the sidebar                           | 7.2 % of the screen   |
-| PdfCraft    | drop a PDF on the canvas, the document opens                    | 29 % of the screen    |
-| FilmCraft   | click a clip in the timeline, the inspector fills in            | 3 % of the inspector  |
-| SoundCraft  | press Space, the transport starts                               | 0.45 % of the screen  |
-| WordCraft   | click the "Blank document" tile, the document opens             | 67 % of the screen    |
+| Application | Operation                                                       | Measured change          |
+| ----------- | --------------------------------------------------------------- | ------------------------ |
+| PhotoCraft  | drop a PNG on the canvas, the image opens                       | 96 % of the screen       |
+| VectorCraft | drop an SVG on the canvas, the drawing opens                    | 61 % of the screen       |
+| CADCraft    | the `LINE` command, then two points                             | 1.6 % of the screen      |
+| GridCraft   | type `42` into cell A1                                          | 2.1 % of the A1 region   |
+| DeckCraft   | click the second slide in the sidebar                           | 7.2 % of the screen      |
+| PdfCraft    | drop a PDF on the canvas, the document opens                    | 29 % of the screen       |
+| FilmCraft   | click a clip in the timeline, the inspector fills in            | 3 % of the inspector     |
+| SoundCraft  | press Space, the transport starts                               | 0.46 % of the screen     |
+| WordCraft   | click the "Blank document" tile, the document opens             | 90 % of the screen       |
+
+The percentages are the values the last run of the suite reported against the
+pinned builds at 1280x720 with SwiftShader. Where the operation changes a
+small part of the window, the test measures that region instead and the
+percentage refers to the region.
 
 The click positions belong to the pinned versions and to the 1280x720
 viewport of the test configuration. A version bump can move them, and the
@@ -78,29 +83,35 @@ automated test: its web build exposes no automation API and opens its file
 dialog from the application's own menu, which a headless browser cannot
 drive. The automated operation for FilmCraft is therefore a selection in
 the timeline; opening a media file in FilmCraft has to be checked by hand.
+CADCraft, GridCraft, DeckCraft, SoundCraft and WordCraft are driven through
+their command line, cells, slide sidebar, transport and start screen instead
+of opening a document.
 
 ## What the tests cannot cover
 
 - **WebGPU.** Headless Chromium has no GPU adapter, so the tests exercise the
   WebGL2 and software rasterizer paths. The WebGPU path needs a browser with
   a working driver.
-- **Audio and video.** FilmCraft's decode and playback, and SoundCraft's
-  mixer and waveform rendering, need a real browser with audio output.
+- **Audio and video.** FilmCraft's decode and playback need a real browser
+  with audio output, and SoundCraft's WebAudio playback only starts after a
+  user gesture, so the headless run proves the transport reacts but not that
+  sound is audible.
 - **The file picker.** The tests drop a file onto the canvas instead of
   using the operating system's file dialog.
 - **Downloads and exports.** Saving a file goes through the browser's
   download flow, which a test cannot inspect.
-- **Local storage.** GridCraft and WordCraft keep recent work in the
-  browser's storage; a fresh browser profile has none.
+- **Local storage.** GridCraft and WordCraft keep their preferences in the
+  browser's storage, as their `HOSTING.md` states; a fresh browser profile
+  starts with defaults.
 - **Performance.** Software rendering is far slower than a GPU; the timings
   in the logs of the test run say nothing about real hardware.
 
 ## Known limitations of this deployment
 
 - Only nine of the upstream applications are published here. LightCraft,
-  EffectCraft, DesignCraft and FigCraft are listed on the landing page with a
-  link to their repositories, because upstream ships them as self-hosted web
-  archives and this site publishes no build of its own for them.
+  EffectCraft, DesignCraft and FigCraft were left out of this deployment by
+  choice; the landing page lists them with a link to their repositories
+  instead of a build.
 - The applications are community deployments of upstream projects. Upstream
   publishes the official binaries; this site only republishes the release
   builds of the tagged versions.
