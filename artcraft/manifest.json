@@ -139,7 +139,7 @@
       "summary": "Digital audio workstation: multitrack editing, mixer, MIDI, recording and bouncing.",
       "requires": ["WebGPU or WebGL2", "WebAudio for playback"],
       "status": "available",
-      "notes": "Upstream is pre-alpha. Playback starts on the first click or key press; recording asks for microphone permission."
+      "notes": "Upstream is pre-alpha. The web build opens a synthesised demo session; playback starts on the first click or key press. Recording and native file dialogs exist in the desktop builds only."
     },
     {
       "id": "wordcraft",
