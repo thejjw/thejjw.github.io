@@ -48,6 +48,12 @@ function monogram(app) {
   return Buffer.from(svg, 'utf8');
 }
 
+/** Join names for prose: "A, B and C". */
+function listNames(names) {
+  if (names.length < 2) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+}
+
 /** One card per application. */
 function card(app, iconName, siteBase) {
   const badges = app.requires
@@ -85,10 +91,10 @@ function card(app, iconName, siteBase) {
           <a class="launch" href="${escape(`${siteBase}${app.id}/`)}">Launch</a>
           <a class="link-quiet" href="${escape(
             app.repo
-          )}" rel="noopener noreferrer" target="_blank">Source</a>
+          )}" rel="nofollow noopener noreferrer" target="_blank">Source</a>
           <a class="link-quiet" href="${escape(
             app.releaseUrl
-          )}" rel="noopener noreferrer" target="_blank">Release notes</a>
+          )}" rel="nofollow noopener noreferrer" target="_blank">Release notes</a>
           ${extra}
         </p>
         <p class="license">License: ${app.license
@@ -97,6 +103,19 @@ function card(app, iconName, siteBase) {
     app.name
   )} authors</p>
       </article>`;
+}
+
+/** One entry in the "not hosted here" catalog. */
+function catalogCard(entry) {
+  return `        <li class="catalog-card" data-app="${escape(entry.id)}">
+          <h3>${escape(entry.name)}</h3>
+          <p class="summary">${escape(entry.summary)}</p>
+          <p class="actions">
+            <a class="link-quiet" href="${escape(
+              entry.repo
+            )}" rel="nofollow noopener noreferrer" target="_blank">GitHub</a>
+          </p>
+        </li>`;
 }
 
 /**
@@ -137,6 +156,7 @@ export async function renderLanding(outDir, options = {}) {
   const cards = manifest.apps
     .map((app, index) => card(app, icons[index], siteBase))
     .join('\n');
+  const catalogCards = (manifest.catalog ?? []).map(catalogCard).join('\n');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -144,7 +164,9 @@ export async function renderLanding(outDir, options = {}) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ArtCraft Creative Suite</title>
-  <meta name="description" content="PhotoCraft, VectorCraft, FilmCraft, LightCraft, PdfCraft, EffectCraft and DesignCraft running in the browser as WebAssembly.">
+  <meta name="description" content="${escape(
+    listNames(manifest.apps.map((app) => app.name))
+  )} running in the browser as WebAssembly.">
   <link rel="stylesheet" href="crafting.css">
 </head>
 <body>
@@ -152,14 +174,23 @@ export async function renderLanding(outDir, options = {}) {
     <p class="eyebrow"><a href="${escape(siteBase)}">&larr; Back to the site</a></p>
     <h1>ArtCraft Creative Suite</h1>
     <p class="lede">
-      Seven open-source creative tools, each running entirely in your browser as
-      WebAssembly. Nothing is uploaded: files you open stay on your device.
+      ${manifest.apps.length} open-source creative tools, each running entirely in
+      your browser as WebAssembly. Nothing is uploaded: files you open stay on
+      your device.
     </p>
   </header>
 
   <main>
     <section class="grid" aria-label="Applications">
 ${cards}
+    </section>
+
+    <section class="catalog" aria-label="Other ArtCraft applications">
+      <h2>Not hosted here</h2>
+      <p class="catalog-lede">These ArtCraft projects are not part of this deployment. The links go to their source repositories.</p>
+      <ul class="catalog-list">
+${catalogCards}
+      </ul>
     </section>
 
     <section class="notes-block">
@@ -180,11 +211,6 @@ ${cards}
           Safari as well.
         </li>
         <li>
-          EffectCraft installs a service worker for offline use. Use its
-          &ldquo;no service worker&rdquo; link if a cached version gets in the way
-          after an update.
-        </li>
-        <li>
           These are community deployments of the upstream projects. The upstream
           authors ship the official binaries; this site only republishes their
           release builds.
@@ -197,7 +223,7 @@ ${cards}
     <p>
       Every application is &copy; its upstream authors and is redistributed under
       its own license (Apache-2.0 and MIT). Source:
-      <a href="https://github.com/storytold" rel="noopener noreferrer" target="_blank">github.com/storytold</a>.
+      <a href="https://github.com/storytold" rel="nofollow noopener noreferrer" target="_blank">github.com/storytold</a>.
     </p>
   </footer>
 </body>

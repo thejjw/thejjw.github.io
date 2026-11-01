@@ -64,8 +64,10 @@ export async function assemble(distDir, options = {}) {
 
   // The application icons come from the pinned upstream tags.
   const iconSource = path.join(repoRoot, '.artcraft', 'icons');
+  const iconIds = new Set(manifest.apps.map((app) => app.id));
   if (existsSync(iconSource)) {
     for (const file of await readdir(iconSource)) {
+      if (!iconIds.has(path.parse(file).name)) continue;
       await copyFile(
         path.join(iconSource, file),
         path.join(landing, 'icons', file)
