@@ -1,6 +1,10 @@
 import { defineConfig } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 
 const baseURL = process.env.ARTCRAFT_BASE_URL || 'http://127.0.0.1:4173';
+// Playwright runs the web server from the config file's directory, so the
+// command and the build it serves need the repository root spelled out.
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 /**
  * Smoke tests for the ArtCraft suite.
@@ -34,6 +38,7 @@ export default defineConfig({
     ? undefined
     : {
         command: 'node scripts/artcraft/serve.mjs',
+        cwd: repoRoot,
         url: 'http://127.0.0.1:4173/crafting/',
         reuseExistingServer: true,
         timeout: 60000,
