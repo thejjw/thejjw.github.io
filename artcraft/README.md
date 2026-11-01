@@ -20,7 +20,10 @@ LightCraft, EffectCraft, DesignCraft and FigCraft are not deployed. They are
 listed in the manifest's `catalog` array instead, so the landing page can
 point at their repositories without publishing their builds.
 
-The landing page lives at `/crafting/`. The applications are the upstream
+The landing page lives at `/crafting/`. It groups the applications by the
+manifest's `categories` array ("Images, design and drafting", "Documents and
+presentations", "Video, audio and motion") and repeats the projects that are
+not deployed inside the matching group. The applications are the upstream
 release builds, unmodified and redistributed under their own licenses
 (Apache-2.0 and MIT). The icons on the landing page come from the same
 pinned upstream tags.
