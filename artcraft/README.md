@@ -1,6 +1,6 @@
 # ArtCraft Creative Suite on GitHub Pages
 
-This folder holds the deployment of seven upstream applications from the
+This folder holds the deployment of nine upstream applications from the
 [Storytold](https://github.com/storytold) organisation under this site's
 GitHub Pages deployment.
 
@@ -8,11 +8,17 @@ GitHub Pages deployment.
 | ----------- | --------------- | ----------------------------------------------------------------- |
 | PhotoCraft  | `/photocraft/`  | [storytold/photocraft](https://github.com/storytold/photocraft)   |
 | VectorCraft | `/vectorcraft/` | [storytold/vectorcraft](https://github.com/storytold/vectorcraft) |
-| FilmCraft   | `/filmcraft/`   | [storytold/filmcraft](https://github.com/storytold/filmcraft)     |
-| LightCraft  | `/lightcraft/`  | [storytold/lightcraft](https://github.com/storytold/lightcraft)   |
+| CADCraft    | `/cadcraft/`    | [storytold/cadcraft](https://github.com/storytold/cadcraft)       |
+| GridCraft   | `/gridcraft/`   | [storytold/gridcraft](https://github.com/storytold/gridcraft)     |
+| DeckCraft   | `/deckcraft/`   | [storytold/deckcraft](https://github.com/storytold/deckcraft)     |
 | PdfCraft    | `/pdfcraft/`    | [storytold/pdfcraft](https://github.com/storytold/pdfcraft)       |
-| EffectCraft | `/effectcraft/` | [storytold/effectcraft](https://github.com/storytold/effectcraft) |
-| DesignCraft | `/designcraft/` | [storytold/designcraft](https://github.com/storytold/designcraft) |
+| FilmCraft   | `/filmcraft/`   | [storytold/filmcraft](https://github.com/storytold/filmcraft)     |
+| SoundCraft  | `/soundcraft/`  | [storytold/soundcraft](https://github.com/storytold/soundcraft)   |
+| WordCraft   | `/wordcraft/`   | [storytold/wordcraft](https://github.com/storytold/wordcraft)     |
+
+LightCraft, EffectCraft, DesignCraft and FigCraft are not deployed. They are
+listed in the manifest's `catalog` array instead, so the landing page can
+point at their repositories without publishing their builds.
 
 The landing page lives at `/crafting/`. The applications are the upstream
 release builds, unmodified and redistributed under their own licenses
@@ -127,7 +133,7 @@ switched back from the Pages tab of the repository settings.
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | The application shows a blank canvas              | The browser has neither WebGPU nor WebGL2. PhotoCraft accepts `?webgl` and `?cpu` in its URL.                                             |
 | A page loads but stays on "Loading …"             | The WebAssembly file did not arrive. Check the network tab for a 404 and run `npm run artcraft:validate` locally.                         |
-| The browser serves an old version after an update | GitHub Pages caches files with a stable name for a few minutes. EffectCraft also caches itself in a service worker; open it with `?nosw`. |
+| The browser serves an old version after an update | GitHub Pages caches files with a stable name for a few minutes. Hard-reload the tab to bypass the cached copy.                            |
 | `validation failed` during the build              | A file that the page loads is missing from the build. The message names the application and the file.                                     |
 | The deploy workflow fails while fetching          | The pinned release or its checksum no longer matches. Run `npm run artcraft:fetch` to see the mismatch.                                   |
 

@@ -711,11 +711,13 @@ To contribute, see the [Contributing guide](https://github.com/arifszn/gitprofil
 
 ## 🎨 ArtCraft Creative Suite
 
-This site also hosts seven creative applications that run in the browser as
-WebAssembly: PhotoCraft, VectorCraft, FilmCraft, LightCraft, PdfCraft,
-EffectCraft and DesignCraft. They are the release builds of the projects in
-the [Storytold](https://github.com/storytold) organisation, downloaded and
-published by the deploy workflow.
+This site also hosts nine creative applications that run in the browser as
+WebAssembly: PhotoCraft, VectorCraft, CADCraft, GridCraft, DeckCraft, PdfCraft,
+FilmCraft, SoundCraft and WordCraft. They are the release builds of the
+projects in the [Storytold](https://github.com/storytold) organisation,
+downloaded and published by the deploy workflow. LightCraft, EffectCraft,
+DesignCraft and FigCraft are listed on the landing page with a link to their
+repositories, but they are not deployed here.
 
 - Landing page: <https://thejjw.github.io/crafting/>
 - Versions, checksums and the deployment process: [`artcraft/README.md`](artcraft/README.md)
