@@ -153,12 +153,28 @@ export async function renderLanding(outDir, options = {}) {
     }
   }
 
-  // The landing page is grouped by the manifest's categories; an entry whose
-  // category is missing falls back to the first one so it cannot disappear.
-  const categories = manifest.categories?.length
-    ? manifest.categories
-    : [{ id: 'all', name: 'Applications', lede: '' }];
-  const categoryOf = (entry) => entry.category ?? categories[0].id;
+  // The landing page is grouped by the manifest's categories. A missing or
+  // unknown category, or a category without entries, is a manifest error: the
+  // build fails instead of filing an application into the wrong group.
+  const categories = manifest.categories ?? [];
+  const entries = [...manifest.apps, ...(manifest.catalog ?? [])];
+  const known = new Map(categories.map((category) => [category.id, category]));
+  for (const entry of entries) {
+    if (!entry.category) {
+      throw new Error(
+        `${entry.id} has no category; add one of ${[...known.keys()].join(', ')}`
+      );
+    }
+    if (!known.has(entry.category)) {
+      throw new Error(`${entry.id} has the unknown category "${entry.category}"`);
+    }
+  }
+  for (const category of categories) {
+    if (!entries.some((entry) => entry.category === category.id)) {
+      throw new Error(`the category "${category.id}" has no entries`);
+    }
+  }
+
   const cardsById = new Map(
     manifest.apps.map((app, index) => [app.id, card(app, icons[index], siteBase)])
   );
@@ -166,11 +182,11 @@ export async function renderLanding(outDir, options = {}) {
   /** One category: its hosted applications, then the projects not hosted. */
   function categorySection(category) {
     const hosted = manifest.apps
-      .filter((app) => categoryOf(app) === category.id)
+      .filter((app) => app.category === category.id)
       .map((app) => cardsById.get(app.id))
       .join('\n');
     const notHosted = (manifest.catalog ?? [])
-      .filter((entry) => categoryOf(entry) === category.id)
+      .filter((entry) => entry.category === category.id)
       .map(catalogCard)
       .join('\n');
     const catalogBlock = notHosted
