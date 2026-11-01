@@ -79,7 +79,7 @@ function card(app, iconName, siteBase) {
   )}">
           <img src="icons/${escape(iconName)}" alt="" width="56" height="56" loading="lazy">
         </a>
-        <h2>${escape(app.name)}</h2>
+        <h3>${escape(app.name)}</h3>
         <p class="summary">${escape(app.summary)}</p>
         <p class="meta">
           <span class="badge version">v${escape(app.version)}</span>
@@ -153,10 +153,43 @@ export async function renderLanding(outDir, options = {}) {
     }
   }
 
-  const cards = manifest.apps
-    .map((app, index) => card(app, icons[index], siteBase))
-    .join('\n');
-  const catalogCards = (manifest.catalog ?? []).map(catalogCard).join('\n');
+  // The landing page is grouped by the manifest's categories; an entry whose
+  // category is missing falls back to the first one so it cannot disappear.
+  const categories = manifest.categories?.length
+    ? manifest.categories
+    : [{ id: 'all', name: 'Applications', lede: '' }];
+  const categoryOf = (entry) => entry.category ?? categories[0].id;
+  const cardsById = new Map(
+    manifest.apps.map((app, index) => [app.id, card(app, icons[index], siteBase)])
+  );
+
+  /** One category: its hosted applications, then the projects not hosted. */
+  function categorySection(category) {
+    const hosted = manifest.apps
+      .filter((app) => categoryOf(app) === category.id)
+      .map((app) => cardsById.get(app.id))
+      .join('\n');
+    const notHosted = (manifest.catalog ?? [])
+      .filter((entry) => categoryOf(entry) === category.id)
+      .map(catalogCard)
+      .join('\n');
+    const catalogBlock = notHosted
+      ? `      <p class="catalog-note">Not hosted here: these ArtCraft projects are not part of this deployment, the links go to their source repositories.</p>
+      <ul class="catalog-list">
+${notHosted}
+      </ul>
+`
+      : '';
+    return `    <section class="group" data-category="${escape(category.id)}" aria-label="${escape(category.name)}">
+      <h2>${escape(category.name)}</h2>
+      <p class="group-lede">${escape(category.lede)}</p>
+      <div class="grid">
+${hosted}
+      </div>
+${catalogBlock}    </section>`;
+  }
+
+  const sections = categories.map(categorySection).join('\n\n');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -181,17 +214,7 @@ export async function renderLanding(outDir, options = {}) {
   </header>
 
   <main>
-    <section class="grid" aria-label="Applications">
-${cards}
-    </section>
-
-    <section class="catalog" aria-label="Other ArtCraft applications">
-      <h2>Not hosted here</h2>
-      <p class="catalog-lede">These ArtCraft projects are not part of this deployment. The links go to their source repositories.</p>
-      <ul class="catalog-list">
-${catalogCards}
-      </ul>
-    </section>
+${sections}
 
     <section class="notes-block">
       <h2>Before you start</h2>

@@ -1,9 +1,27 @@
 {
   "landingPath": "/crafting/",
   "siteBase": "/",
+  "categories": [
+    {
+      "id": "design",
+      "name": "Images, design and drafting",
+      "lede": "Raster and vector drawing, computer-aided drafting, layout and interface design."
+    },
+    {
+      "id": "documents",
+      "name": "Documents and presentations",
+      "lede": "Word processing, spreadsheets, slide decks and PDF."
+    },
+    {
+      "id": "media",
+      "name": "Video, audio and motion",
+      "lede": "Video editing, audio production, compositing and motion graphics."
+    }
+  ],
   "apps": [
     {
       "id": "photocraft",
+      "category": "design",
       "name": "PhotoCraft",
       "accent": "#38bdf8",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.photocraft.png",
@@ -21,6 +39,7 @@
     },
     {
       "id": "vectorcraft",
+      "category": "design",
       "name": "VectorCraft",
       "accent": "#f472b6",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.vectorcraft.png",
@@ -34,10 +53,11 @@
       "summary": "Vector graphics editor: paths, shapes, typography and a PDF backend for import and export.",
       "requires": ["WebGPU or WebGL2"],
       "status": "available",
-      "notes": "Large single WebAssembly module (about 67 MiB); extra fonts can be dropped into fonts/ next to the app."
+      "notes": "Large single WebAssembly module (about 64 MiB); extra fonts can be dropped into fonts/ next to the app."
     },
     {
       "id": "cadcraft",
+      "category": "design",
       "name": "CADCraft",
       "accent": "#14a3c7",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.cadcraft.png",
@@ -55,6 +75,7 @@
     },
     {
       "id": "gridcraft",
+      "category": "documents",
       "name": "GridCraft",
       "accent": "#1f9d55",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.gridcraft.png",
@@ -72,6 +93,7 @@
     },
     {
       "id": "deckcraft",
+      "category": "documents",
       "name": "DeckCraft",
       "accent": "#f26b1d",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.deckcraft.png",
@@ -89,6 +111,7 @@
     },
     {
       "id": "pdfcraft",
+      "category": "documents",
       "name": "PdfCraft",
       "accent": "#f87171",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.pdfcraft.png",
@@ -106,6 +129,7 @@
     },
     {
       "id": "filmcraft",
+      "category": "media",
       "name": "FilmCraft",
       "accent": "#a78bfa",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.filmcraft.png",
@@ -126,6 +150,7 @@
     },
     {
       "id": "soundcraft",
+      "category": "media",
       "name": "SoundCraft",
       "accent": "#0b7385",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.soundcraft.png",
@@ -143,6 +168,7 @@
     },
     {
       "id": "wordcraft",
+      "category": "documents",
       "name": "WordCraft",
       "accent": "#3b5bdb",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.wordcraft.png",
@@ -162,24 +188,28 @@
   "catalog": [
     {
       "id": "figcraft",
+      "category": "design",
       "name": "FigCraft",
       "summary": "Interface design and prototyping: frames, auto layout, components, variables and prototypes.",
       "repo": "https://github.com/storytold/figcraft"
     },
     {
       "id": "lightcraft",
+      "category": "design",
       "name": "LightCraft",
       "summary": "Non-destructive photo library and RAW developer: browse, develop and export RAW images.",
       "repo": "https://github.com/storytold/lightcraft"
     },
     {
       "id": "effectcraft",
+      "category": "media",
       "name": "EffectCraft",
       "summary": "Motion graphics and compositing: node-style effects, animation and rendering.",
       "repo": "https://github.com/storytold/effectcraft"
     },
     {
       "id": "designcraft",
+      "category": "design",
       "name": "DesignCraft",
       "summary": "Page and layout design editor: grids, columns, typography and publishing-ready output.",
       "repo": "https://github.com/storytold/designcraft"

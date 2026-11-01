@@ -78,7 +78,7 @@ h1 {
   background: var(--surface);
 }
 
-.card h2 {
+.card h3 {
   margin: 0;
   font-size: 1.2rem;
 }
@@ -198,18 +198,26 @@ footer {
   font-size: 0.85rem;
 }
 
-.catalog {
+.group {
   margin: 2rem 0;
 }
 
-.catalog h2 {
+.group h2 {
   margin: 0 0 0.35rem;
+  font-size: 1.45rem;
 }
 
-.catalog-lede {
-  margin: 0 0 1rem;
+.group-lede {
+  margin: 0 0 0.5rem;
   max-width: 70ch;
   color: var(--muted);
+}
+
+.catalog-note {
+  margin: 0 0 0.75rem;
+  max-width: 70ch;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .catalog-list {
