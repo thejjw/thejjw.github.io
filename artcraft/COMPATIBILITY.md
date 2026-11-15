@@ -65,9 +65,9 @@ the measured area does not change:
 | GridCraft   | type `42` into cell A1                                          | 2.1 % of the A1 region   |
 | DeckCraft   | click the second slide in the sidebar                           | 7.2 % of the screen      |
 | PdfCraft    | drop a PDF on the canvas, the document opens                    | 29 % of the screen       |
-| FilmCraft   | click a clip in the timeline, the inspector fills in            | 3 % of the inspector     |
+| FilmCraft   | click a clip in the timeline, the inspector fills in            | 4.2 % of the inspector   |
 | SoundCraft  | press Space, the transport starts                               | 0.46 % of the screen     |
-| WordCraft   | click the "Blank document" tile, the document opens             | 90 % of the screen       |
+| WordCraft   | click the "Blank document" tile, the document opens             | 89 % of the screen       |
 
 The percentages are the values the last run of the suite reported against the
 pinned builds at 1280x720 with SwiftShader. Where the operation changes a
