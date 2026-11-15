@@ -176,6 +176,18 @@ for (const app of manifest.apps) {
 }
 problems.push(...(await validateLanding(distDir, manifest)));
 
+// GitHub Pages refuses sites over 1 GB; keep headroom below that. Decimal
+// bytes, as GitHub states the limit. ARTCRAFT_SIZE_BUDGET overrides it.
+const budget = Number(process.env.ARTCRAFT_SIZE_BUDGET || 950_000_000);
+const siteBytes = await directorySize(distDir);
+const siteMB = (bytes) => `${(bytes / 1e6).toFixed(0)} MB`;
+if (siteBytes > budget) {
+  problems.push(
+    `the site is ${siteMB(siteBytes)}, over the ${siteMB(budget)} budget`
+  );
+} else {
+  console.log(`site size: ${siteMB(siteBytes)} of the ${siteMB(budget)} budget`);
+}
 
 if (problems.length) {
   console.error('validation failed:');

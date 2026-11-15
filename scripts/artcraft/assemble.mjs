@@ -17,7 +17,7 @@ const manifestPath = path.join(repoRoot, 'artcraft', 'manifest.json');
 const stageDir = path.join(repoRoot, '.artcraft', 'stage');
 
 /** Total size of a directory tree, in bytes. */
-async function directorySize(directory) {
+export async function directorySize(directory) {
   let total = 0;
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const target = path.join(directory, entry.name);
