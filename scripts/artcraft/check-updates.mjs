@@ -119,6 +119,7 @@ if (selected.length === 0) {
   process.exit(2);
 }
 const updates = [];
+const held = [];
 
 for (const app of selected) {
   const slug = app.repo.replace('https://github.com/', '').replace(/\/$/, '');
@@ -136,7 +137,9 @@ for (const app of selected) {
   // A held application stays on its pin (e.g. upstream ships a broken web
   // build); it is reported but never counted as an update.
   if (app.hold) {
-    console.log(`${app.id}: held at ${pinned}, ${latest} available (${app.hold})`);
+    const line = `${app.id}: held at ${pinned}, ${latest} available (${app.hold})`;
+    held.push(line);
+    console.log(line);
     continue;
   }
   const asset = webAsset(release, app.id);
@@ -157,12 +160,23 @@ if (apply) {
   process.exit(0);
 }
 
+// Held applications are listed wherever the result is read, so a hold whose
+// upstream issue got fixed is noticed and lifted.
+const heldSection = held.length
+  ? `\nHeld on purpose (remove the \`hold\` in the manifest once upstream is fixed):\n\n${held
+      .map((line) => `- ${line}`)
+      .join('\n')}\n`
+  : '';
+
 if (updates.length === 0) {
-  console.log('every application is up to date');
+  const summary = held.length
+    ? 'No updates to apply; every other application is on its latest release.'
+    : 'Every application is on its latest release.';
+  console.log(`\n${summary}${heldSection}`);
   if (process.env.GITHUB_STEP_SUMMARY) {
     await writeFile(
       process.env.GITHUB_STEP_SUMMARY,
-      '## ArtCraft update check\n\nEvery application is on its latest release.\n',
+      `## ArtCraft update check\n\n${summary}\n${heldSection}`,
       { flag: 'a' }
     );
   }
@@ -189,7 +203,7 @@ Follow "Refreshing the suite" in \`artcraft/README.md\`. Each application is pin
 \`\`\`sh
 ${commands}
 \`\`\`
-`;
+${heldSection}`;
 
 console.log(`\n${body}`);
 if (process.env.GITHUB_STEP_SUMMARY) {
