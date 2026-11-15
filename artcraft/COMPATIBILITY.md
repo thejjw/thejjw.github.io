@@ -14,7 +14,7 @@ Pages.
 | VectorCraft | 0.24.1 | 36.6 MiB | 97.5 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | CADCraft    | 0.20.1 | 10.9 MiB | 29.5 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | GridCraft   | 0.19.1 | 9.2 MiB | 25.1 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
-| DeckCraft   | 0.13.1  | 11.0 MiB        | 30.6 MiB, one file                     | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
+| DeckCraft   | 0.18.1 | 11.4 MiB | 31.6 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | PdfCraft    | 0.9.0   | 13.8 MiB        | 37.2 MiB, one file                     | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | FilmCraft   | 0.9.0   | 12.7 MiB        | 39.3 MiB, one file                     | not needed        | supported, relative URLs | WebGPU or WebGL2, WebCodecs for video  | deployed, verified |
 | SoundCraft  | 0.15.0  | 6.4 MiB         | 17.0 MiB, one file                     | not needed        | supported, relative URLs | WebGPU or WebGL2, WebAudio for playback | deployed, verified |
