@@ -212,4 +212,4 @@ try {
       `No issue was opened (${error.message}); the job summary lists the details.`
   );
   process.exit(1);
-}await openIssue(body);
+}
