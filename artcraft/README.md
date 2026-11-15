@@ -98,7 +98,8 @@ single application can be rolled back with `git revert`.
    `node scripts/artcraft/check-updates.mjs --apply --app <id>`. It rewrites
    `tag`, `version`, `asset`, `sha256` and `releaseUrl` of that entry. Then
    `npm run artcraft:fetch -- --app <id>`, which refuses an archive whose
-   checksum matches neither the manifest nor upstream's `SHA256SUMS.txt`.
+   checksum does not match the manifest, and also compares the manifest with
+   the `SHA256SUMS.txt` that upstream publishes.
 2. **Read the release's `HOSTING.md`** (in `.artcraft/stage/<id>/`). GitHub
    Pages cannot set response headers, so an application that starts to need
    `SharedArrayBuffer`, WebAssembly threads or the COOP/COEP isolation
