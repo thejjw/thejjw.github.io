@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { directorySize } from './assemble.mjs';
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 const manifestPath = path.join(repoRoot, 'artcraft', 'manifest.json');
@@ -33,7 +34,8 @@ function scriptReferences(source) {
   for (const match of source.matchAll(loaded)) references.push(match[1]);
   const staticImport = /\bfrom\s+["']([^"']+)["']/g;
   for (const match of source.matchAll(staticImport)) references.push(match[1]);
-  return references;
+  // A module often imports the same file several times; report it once.
+  return [...new Set(references)];
 }
 
 /** Resolve a reference against the directory of the file that mentions it. */
@@ -81,9 +83,12 @@ async function validateApp(app, distDir) {
   }
 
   const files = await readdir(appDirectory, { withFileTypes: true });
-  const scripts = files.filter(
-    (entry) => entry.isFile() && entry.name.endsWith('.js')
-  );
+  // Scripts anywhere in the application, not only next to index.html: a
+  // module in a subdirectory resolves its imports against that subdirectory
+  // (PhotoCraft 0.17.0+ ships app/photocraft-web.js importing ./snippets/).
+  const scripts = (await readdir(appDirectory, { recursive: true }))
+    .filter((name) => name.endsWith('.js'))
+    .map((name) => ({ name: name.split(path.sep).join('/') }));
   for (const script of scripts) {
     const scriptFile = path.join(appDirectory, script.name);
     const source = await readFile(scriptFile, 'utf8');
@@ -170,6 +175,7 @@ for (const app of manifest.apps) {
   problems.push(...(await validateApp(app, distDir)));
 }
 problems.push(...(await validateLanding(distDir, manifest)));
+
 
 if (problems.length) {
   console.error('validation failed:');
