@@ -25,17 +25,17 @@
       "name": "PhotoCraft",
       "accent": "#38bdf8",
       "icon": "assets/app-icon/hicolor/256x256/apps/ai.storyteller.photocraft.png",
-      "tag": "v0.23.1",
-      "version": "0.23.1",
-      "asset": "photocraft-web-0.23.1.zip",
-      "sha256": "3a498eb517bca6cec89f9c6b1fc6448269a05428c8a3a4637c16817da157f03c",
+      "tag": "v0.16.0",
+      "version": "0.16.0",
+      "asset": "photocraft-web-0.16.0.zip",
+      "sha256": "d811b72621546180d033dd5e6a88255f58f21788d83bd50fbbcd94b5084267a9",
       "repo": "https://github.com/storytold/photocraft",
-      "releaseUrl": "https://github.com/storytold/photocraft/releases/tag/v0.23.1",
+      "releaseUrl": "https://github.com/storytold/photocraft/releases/tag/v0.16.0",
       "license": ["Apache-2.0", "MIT"],
       "summary": "Raster image editor: crop, retouch, color and layer work on the visitor's device.",
       "requires": ["WebGPU or WebGL2"],
       "status": "available",
-      "notes": "The app's WebAssembly ships gzip-compressed and split into parts, so it survives hosts with a 25 MiB file cap."
+      "notes": "The app's WebAssembly ships gzip-compressed and split into parts, so it survives hosts with a 25 MiB file cap. Pinned at 0.16.0: the web builds of 0.17.0 to 0.23.1 cannot start (upstream storytold/photocraft#10017)."
     },
     {
       "id": "vectorcraft",

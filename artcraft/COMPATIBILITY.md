@@ -10,7 +10,7 @@ Pages.
 
 | Application | Version | Release archive | WebAssembly                            | Isolation headers | Subdirectory             | Runtime                                | Status             |
 | ----------- | ------- | --------------- | -------------------------------------- | ----------------- | ------------------------ | -------------------------------------- | ------------------ |
-| PhotoCraft  | 0.23.1  | 15.3 MiB        | 15.2 MiB, gzipped and split into parts | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
+| PhotoCraft  | 0.16.0  | 11.6 MiB        | 11.5 MiB, gzipped and split into parts | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | VectorCraft | 0.24.1 | 36.6 MiB | 97.5 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | CADCraft    | 0.20.1 | 10.9 MiB | 29.5 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | GridCraft   | 0.19.1 | 9.2 MiB | 25.1 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
