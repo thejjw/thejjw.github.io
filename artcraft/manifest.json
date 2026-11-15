@@ -31,6 +31,7 @@
       "sha256": "d811b72621546180d033dd5e6a88255f58f21788d83bd50fbbcd94b5084267a9",
       "repo": "https://github.com/storytold/photocraft",
       "releaseUrl": "https://github.com/storytold/photocraft/releases/tag/v0.16.0",
+      "hold": "storytold/photocraft#10017: the web builds of 0.17.0 and later cannot start",
       "license": ["Apache-2.0", "MIT"],
       "summary": "Raster image editor: crop, retouch, color and layer work on the visitor's device.",
       "requires": ["WebGPU or WebGL2"],
