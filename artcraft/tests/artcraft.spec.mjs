@@ -339,7 +339,7 @@ for (const app of manifest.apps) {
       await helper.close();
       // Reported so COMPATIBILITY.md's "Measured change" column can be
       // refreshed from a run against new pins.
-      console.log(`${app.id}: measured change ${(difference * 100).toPrecision(2)} %`);
+      console.log(`${app.id}: measured change ${Number((difference * 100).toPrecision(2))} %`);
       expect(
         difference,
         `${app.id} did not react to ${operation.what}`
