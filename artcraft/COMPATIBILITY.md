@@ -18,7 +18,7 @@ Pages.
 | PdfCraft    | 0.21.1 | 32.8 MiB | 57.8 MiB, one file (plus 3.2 MiB OCR wasm, 9.3 MiB model) | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 | FilmCraft   | 0.20.1 | 14.9 MiB | 47.7 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2, WebCodecs for video  | deployed, verified |
 | SoundCraft  | 0.20.1 | 6.8 MiB | 18.2 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2, WebAudio for playback | deployed, verified |
-| WordCraft   | 0.13.2  | 17.7 MiB        | 48.2 MiB, one file                     | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
+| WordCraft   | 0.18.1 | 21.5 MiB | 58.2 MiB, one file | not needed        | supported, relative URLs | WebGPU or WebGL2                       | deployed, verified |
 
 LightCraft, EffectCraft, DesignCraft and FigCraft are not part of this
 deployment and are not covered by the table; the landing page lists them in
