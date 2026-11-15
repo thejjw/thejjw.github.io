@@ -82,30 +82,79 @@ validates without publishing.
 After a successful deploy the `ArtCraft smoke tests` workflow runs the
 Playwright tests against the live site.
 
-## Updating an application
+## Refreshing the suite
 
-1. Edit the entry of the application in `artcraft/manifest.json`: `tag`,
-   `version`, `asset` and `sha256`.
-2. Get the checksum of the new archive:
+The `Check ArtCraft updates` workflow runs every Monday and looks for newer
+tagged releases. It never deploys on its own and never follows a moving
+branch. When updates exist, the run lists them in its job summary and tries to
+open an issue. Issues are disabled on this repository, so the run fails with a
+warning that names the applications: a failed run means "updates available".
+
+The same check runs locally (`node scripts/artcraft/check-updates.mjs`). A
+refresh goes like this; do it on a branch, one commit per application, so a
+single application can be rolled back with `git revert`.
+
+1. **Pin the new release.** Run
+   `node scripts/artcraft/check-updates.mjs --apply --app <id>`. It rewrites
+   `tag`, `version`, `asset`, `sha256` and `releaseUrl` of that entry. Then
+   `npm run artcraft:fetch -- --app <id>`, which refuses an archive whose
+   checksum matches neither the manifest nor upstream's `SHA256SUMS.txt`.
+2. **Read the release's `HOSTING.md`** (in `.artcraft/stage/<id>/`). GitHub
+   Pages cannot set response headers, so an application that starts to need
+   `SharedArrayBuffer`, WebAssembly threads or the COOP/COEP isolation
+   headers cannot be hosted here. Check its `requires` and the stage line
+   ("alpha", "pre-alpha", ...) of its README against the manifest `notes`.
+3. **Re-measure, don't copy.** Update the application's row of the matrix in
+   [COMPATIBILITY.md](COMPATIBILITY.md) with the archive size (from
+   `.artcraft/cache/`) and the WebAssembly size (from the staged files), and
+   any size quoted in the manifest `notes`.
+4. **Commit** as `chore: bump <id> to <version>`, then repeat for the next
+   application.
+5. **Test the whole suite locally** before pushing:
 
    ```sh
-   curl -sL -o photocraft-web.zip \
-     https://github.com/storytold/photocraft/releases/download/v0.12.0/photocraft-web-0.12.0.zip
-   sha256sum photocraft-web.zip
+   npm run build && npm run artcraft:assemble && npm run artcraft:validate
+   npm run artcraft:serve     # in a second terminal
+   npm run artcraft:smoke
    ```
 
-   The same value is in the release's `SHA256SUMS.txt`.
+   `artcraft:validate` fails when the site is over the size budget (950 MB,
+   `ARTCRAFT_SIZE_BUDGET` to override; GitHub Pages stops at 1 GB) and prints
+   the current size. The smoke tests print the measured change of each
+   operation; copy changed values into the second table of COMPATIBILITY.md.
+   An application can pass validation and still fail to start, so do not
+   skip the smoke tests.
+6. **Push and watch.** Push to `main` and follow the `Deploy` and
+   `ArtCraft smoke tests` runs (`gh run watch <id> --exit-status`). Then open
+   the live site, which is served from the custom domain in `CNAME`
+   (`thejjw.github.io` redirects to it), and check `/crafting/` lists the new
+   versions. The repository's Pages source is still the `main` branch, so a
+   `pages-build-deployment` run of the repository root starts next to every
+   `Deploy` run; the deployment that finishes last is live. `Deploy` has
+   always finished last so far, but if the site ever shows the raw repository
+   root, switch the Pages source to "GitHub Actions".
 
-3. Commit and push. The deploy workflow picks it up.
+### When a release is broken
 
-`npm run artcraft:fetch` refuses to install an archive whose checksum does
-not match the manifest, and it also compares the manifest with the checksum
-file that upstream publishes.
+If an upstream release cannot run here, stay on the newest release that does
+and add a `hold` to its manifest entry, naming the upstream issue:
 
-The `Check ArtCraft updates` workflow runs every Monday. It looks for newer
-releases and opens an issue with the manifest entries ready to paste. It
-never deploys on its own, and it never follows a moving branch: only tagged
-releases are used.
+```json
+"hold": "storytold/photocraft#10017: the web builds of 0.17.0 and later cannot start"
+```
+
+The update check then reports the newer release as held: it does not count
+as an update and `--apply` does not touch the entry. Remove the `hold` when
+upstream ships a fixed release.
+
+### The toolchain
+
+The workflows pin a Node.js major (`node-version`) and the major version of
+each GitHub action. Refresh them in the same pass: use the current Active LTS
+from the [Node.js release schedule](https://github.com/nodejs/Release), read
+the release notes of each action before raising its major, and update
+`@playwright/test` with `npm install -D @playwright/test@latest` followed by
+`npx playwright install chromium`.
 
 ## Rolling back
 
